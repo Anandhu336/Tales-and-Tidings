@@ -72,7 +72,13 @@
       if (audio) fade(0, 700, () => audio.pause()); else if (yt) ytCmd('pauseVideo');
     };
     c.toggle = () => { if (c.playing) { c.muted = true; c.stop(); } else { c.muted = false; c.start(); } };
+    /* Phones only allow sound after the visitor touches the page. So: try right away (some browsers allow it),
+       and if that is blocked, start on their very first tap, swipe or key press anywhere. */
+    const EVS = ['pointerup', 'touchend', 'click', 'keydown'];
+    const onFirst = () => { EVS.forEach(e => removeEventListener(e, onFirst, true)); if (!c.playing && !c.muted) c.start(); };
+    c.autoplay = () => { if (!S) return; c.start(); EVS.forEach(e => addEventListener(e, onFirst, true)); };
     c.destroy = () => {
+      EVS.forEach(e => removeEventListener(e, onFirst, true));
       fadeId++; if (audio) { audio.pause(); audio = null; } if (yt) { yt.remove(); yt = null; } if (c.btn) { c.btn.remove(); c.btn = null; } c.playing = false;
     };
     return c;

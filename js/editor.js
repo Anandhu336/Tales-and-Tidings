@@ -1,6 +1,8 @@
 /* Tales & Tidings editor: turns a template's `schema` into a form. Every field type a template can use lives here.
-   Field types: text, textarea, date, time, choice, color, toggle, image, place, repeater, reset.
-   choice: `resets: [keys]` clears those keys when picked.  color: `default` may be a function(data).  reset: button that clears `keys`. */
+   Field types: text, textarea, date, time, choice, color, toggle, image, place, repeater, reset, sticker.
+   choice: `resets: [keys]` clears those keys when picked; `default` is the value shown when nothing is picked; options may carry `f` (a font to show the label in).
+   sticker: a grid of animated stickers to pick one from (`options`: list of emoji; `none`: label for an empty "use the default" choice).
+   choice `options` may be a function(data) so the list follows the rest of the form.  color: `default` may be a function(data).  reset: button that clears `keys`. */
 (function () {
   'use strict';
   const KS = window.KS, u = KS.util, el = u.el;
@@ -15,7 +17,32 @@
       f.help ? el('p', { class: 'help' }, f.help) : null);
   }
 
-  KS.buildEditor = function (host, schema, data, onChange) {
+  /* a sticker button inside a text box: opens a picker and drops the chosen emoji in at the cursor */
+  function withStickers(f, box) {
+    const groups = (KS.cute && KS.cute.STICKER_GROUPS) || [['All', [...u.STK].map(c => String.fromCodePoint(...c.split('_').map(h => parseInt(h, 16))))]];
+    let pan = null, at = 0;
+    const insert = e => {
+      const s = box.selectionStart == null ? box.value.length : box.selectionStart, end = box.selectionEnd == null ? s : box.selectionEnd;
+      box.setRangeText(e, s, end, 'end');
+      if (!u.LITE) box.focus(); // on phones, don't pop the keyboard over the picker
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    const draw = () => {
+      pan.textContent = '';
+      pan.append(el('div', { class: 'emo-tabs', role: 'tablist' }, groups.map(([l], i) => el('button', { type: 'button', class: 'emo-tab', role: 'tab', 'aria-selected': String(i === at), onclick: () => { at = i; draw(); } }, l)),
+          el('button', { type: 'button', class: 'emo-tab done', onclick: () => { pan.hidden = true; } }, 'Done')),
+        el('div', { class: 'emo-grid' }, groups[at][1].map(e => el('button', { type: 'button', 'aria-label': 'Add ' + e, html: u.stk(e), onclick: () => insert(e) }))),
+        el('p', { class: 'emo-tip' }, 'Tip: you can also type any emoji. They all animate on the page.'));
+    };
+    const btn = el('button', { type: 'button', class: 'emo-btn', title: 'Add a sticker', 'aria-label': 'Add a sticker', onclick: () => {
+      if (!pan) { pan = el('div', { class: 'emo-pan' }); wrap.after(pan); draw(); } else pan.hidden = !pan.hidden;
+    } }, '😊');
+    const wrap = el('div', { class: 'emo' + (box.tagName === 'TEXTAREA' ? ' ta' : '') }, box, btn);
+    return wrap;
+  }
+
+  KS.buildEditor = function (host, schema, data, onChange, opts) {
+    const emoji = !!(opts && opts.emoji);
     const showers = []; // functions that re-check "show if" conditions
     const changed = () => { showers.forEach(fn => fn()); onChange(data); };
 
@@ -26,19 +53,23 @@
         case 'text': case 'date': case 'time': {
           const i = el('input', { type: f.type, id: f._id, maxlength: f.type === 'text' ? (f.max || 120) : null, placeholder: f.placeholder || '', autocomplete: 'off', value: obj[key] || '' });
           i.addEventListener('input', () => { obj[key] = i.value; changed(); });
-          return fieldBlock(f, i);
+          return fieldBlock(f, emoji && f.type === 'text' && f.emoji !== false ? withStickers(f, i) : i);
         }
         case 'textarea': {
           const t = el('textarea', { id: f._id, rows: f.rows || 5, placeholder: f.placeholder || '' }); t.value = obj[key] || '';
           const cnt = f.lines ? el('span', { class: 'count' }) : null;
           const upd = () => { if (cnt) { const n = t.value.split('\n').filter(s => s.trim()).length; cnt.textContent = n + ' / ' + f.lines + ' lines'; cnt.classList.toggle('over', n > f.lines); } };
           t.addEventListener('input', () => { obj[key] = t.value; upd(); changed(); }); upd();
-          return fieldBlock(f, [t, cnt ? el('div', { class: 'counter' }, cnt) : null]);
+          return fieldBlock(f, [emoji && f.emoji !== false ? withStickers(f, t) : t, cnt ? el('div', { class: 'counter' }, cnt) : null]);
         }
         case 'choice': {
           const wrap = el('div', { class: 'chips', role: 'radiogroup' });
-          const draw = () => { wrap.textContent = ''; f.options.forEach(o => wrap.append(el('button', { type: 'button', class: 'chip', role: 'radio', 'aria-checked': String((obj[key] == null ? f.options[0].v : obj[key]) === o.v),
-            onclick: () => { obj[key] = o.v; (f.resets || []).forEach(k => { delete obj[k]; }); draw(); changed(); } }, o.c ? el('i', { class: 'dot', style: 'background:' + o.c }) : null, o.l))); };
+          if (f.fonts && KS.cute) u.font(KS.cute.allFontsUrl());
+          const opts = () => (typeof f.options === 'function' ? f.options(data) : f.options) || [];
+          const draw = () => { wrap.textContent = ''; opts().forEach(o => wrap.append(el('button', { type: 'button', class: 'chip' + (o.f ? ' fontchip' : ''), role: 'radio', style: o.f ? 'font-family:' + o.f : null,
+            'aria-checked': String((obj[key] == null ? (f.default != null ? f.default : (opts()[0] || {}).v) : obj[key]) === o.v),
+            onclick: () => { obj[key] = o.v; (f.resets || []).forEach(k => { delete obj[k]; }); draw(); changed(); wrap.dispatchEvent(new Event('input', { bubbles: true })); } }, o.c ? el('i', { class: 'dot', style: 'background:' + o.c }) : null, o.l))); };
+          if (typeof f.options === 'function') showers.push(draw); // options that depend on the rest of the form (e.g. the list of pages)
           draw(); return fieldBlock(f, wrap);
         }
         case 'color': {
@@ -62,6 +93,21 @@
             mk('url', 'Google Maps link (optional)', 'Maps link')), 'placefield');
         }
         case 'repeater': return repeater(f, obj);
+        case 'sticker': {
+          const opts = f.options || [...u.STK].map(c => String.fromCodePoint(...c.split('_').map(h => parseInt(h, 16))));
+          const cur = el('span', { class: 'stkcur' }), grid = el('div', { class: 'stkgrid', role: 'radiogroup', hidden: true });
+          const val = () => obj[key] || (f.none ? '' : f.default || opts[0]);
+          const drawCur = () => { cur.innerHTML = val() ? u.stk(val()) : `<small>${u.esc(f.none)}</small>`; grid.querySelectorAll('.stkopt').forEach(b => b.setAttribute('aria-checked', String(b.dataset.e === val()))); };
+          const pickIt = e => { obj[key] = e; drawCur(); changed(); grid.dispatchEvent(new Event('input', { bubbles: true })); };
+          const toggle = el('button', { type: 'button', class: 'btn', id: f._id, onclick: () => {
+            grid.hidden = !grid.hidden; toggle.textContent = grid.hidden ? 'Change' : 'Done';
+            if (!grid.hidden && !grid.childElementCount) {
+              if (f.none) grid.append(el('button', { type: 'button', class: 'stkopt none', role: 'radio', 'data-e': '', onclick: () => pickIt('') }, f.none));
+              opts.forEach(e => grid.append(el('button', { type: 'button', class: 'stkopt', role: 'radio', 'data-e': e, 'aria-label': e, html: u.stk(e), onclick: () => pickIt(e) }))); drawCur(); }
+          } }, 'Change');
+          drawCur();
+          return fieldBlock(f, [el('div', { class: 'stkrow' }, cur, toggle), grid]);
+        }
         default: return el('div');
       }
     }

@@ -5,7 +5,7 @@
 (function () {
   'use strict';
   const KS = window.KS, u = KS.util, el = u.el, $ = u.$, B = KS.backend;
-  const IDS = ['garden', 'birthday', 'wedding', 'wedding-hindu', 'wedding-muslim', 'wedding-christian', 'wedding-modern', 'celestial'];
+  const IDS = ['garden', 'quest', 'ask-date', 'ask-sorry', 'birthday', 'wedding', 'wedding-hindu', 'wedding-muslim', 'wedding-christian', 'wedding-modern', 'celestial'];
   const stage = () => $('#stage'), app = () => $('#app');
   let current = null; // the template currently on screen
 
@@ -21,6 +21,7 @@
     const data = page.d || {};
     document.title = (T.title ? T.title(data) : '') || 'Tales & Tidings';
     current = { music, ctl: T.mount(stage(), data, ctx) };
+    if (!opts.preview) music.autoplay();
   }
 
   /* ---------------- visitor view ---------------- */
@@ -335,7 +336,7 @@
         el('div', { class: 'ed-pv' }, el('div', { class: 'pvbar' }, dev, liveBtn, el('button', { class: 'btn ghost', type: 'button', onclick: () => { ready && (live = false, liveBtn.textContent = '▶ Play as a visitor', send()); } }, '↻ Refresh')), el('div', { class: 'pvstage' }, frame))));
     app().textContent = ''; app().append(root);
 
-    KS.buildEditor(formHost, T.schema, data, changed);
+    KS.buildEditor(formHost, T.schema, data, changed, { emoji: !!T.emoji });
     const me = KS.buildMusicEditor(musicHost, music, changed);
     teardown = () => { removeEventListener('message', onMsg); clearTimeout(timer); clearTimeout(saveT); me.stop(); };
 

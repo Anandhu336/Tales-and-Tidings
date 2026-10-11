@@ -119,8 +119,8 @@ input[type=color]{width:54px;height:38px;padding:2px;border:1px solid var(--line
 .dot{width:12px;height:12px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.15)}
 .switch{display:flex;align-items:center;gap:11px;cursor:pointer;font:600 14px var(--sans)}
 .switch input{position:absolute;opacity:0;width:0;height:0}
-.track{width:42px;height:24px;background:#d9d0c5;border-radius:999px;position:relative;flex:none;transition:background .18s}
-.track::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .18s}
+.switch .track{width:42px;height:24px;background:#d9d0c5;border-radius:999px;position:relative;flex:none;transition:background .18s}
+.switch .track::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .18s}
 .switch input:checked+.track{background:var(--brand)}
 .switch input:checked+.track::after{transform:translateX(18px)}
 .switch input:focus-visible+.track{box-shadow:0 0 0 3px rgba(180,71,95,.25)}
@@ -405,3 +405,32 @@ body.is-lp{background:#faf5ec}
 .lp-ig{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,326px),1fr));gap:20px;margin-top:30px;justify-items:center}
 .lp-ig .instagram-media{min-width:0!important;width:100%!important;max-width:420px!important}
 .lp-exnote{text-align:center;color:#9b8c8f;font-size:13px;margin:18px 0 0}
+
+/* ---- animated sticker picker + font chips (cute designs) ---- */
+.stkrow{display:flex;align-items:center;gap:14px}
+.stkcur{width:64px;height:64px;border-radius:16px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;font-size:44px;line-height:1}
+.stkcur .stk{width:52px;height:52px}
+.stkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:8px;margin-top:12px;max-height:260px;overflow-y:auto;padding:4px}
+.stkopt{appearance:none;border:2px solid transparent;background:#fff;border-radius:14px;aspect-ratio:1;padding:4px;cursor:pointer;display:grid;place-items:center;font-size:32px;line-height:1}
+.stkopt .stk{width:100%;height:100%}
+.stkopt[aria-checked="true"]{border-color:var(--brand);background:#fff4f6}
+.chip.fontchip{font-size:16px}
+.stkcur small{font:600 11px/1.2 var(--sans);color:var(--muted);text-align:center;padding:4px}
+.stkopt.none{font:600 11px/1.15 var(--sans);color:var(--muted)}
+
+/* ---- sticker button inside text boxes (cute designs) ---- */
+.emo{position:relative}
+.emo>input,.emo>textarea{padding-right:46px}
+.emo-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:10px;border:0;background:transparent;font-size:20px;line-height:1;cursor:pointer}
+.emo.ta .emo-btn{top:6px;transform:none}
+.emo-btn:hover{background:#f6eee6}
+.emo-pan{margin-top:8px;border:1px solid var(--line);border-radius:14px;background:#fff;padding:8px;box-shadow:var(--shadow)}
+.emo-tabs{display:flex;gap:6px;overflow-x:auto;padding:0 0 8px;scrollbar-width:none}
+.emo-tab{appearance:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font:600 13px var(--sans);color:var(--ink);cursor:pointer;white-space:nowrap}
+.emo-tab[aria-selected="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
+.emo-tab.done{margin-left:auto}
+.emo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:4px;max-height:212px;overflow-y:auto}
+.emo-grid button{appearance:none;border:0;background:none;aspect-ratio:1;border-radius:10px;padding:4px;cursor:pointer;font-size:28px;line-height:1;display:grid;place-items:center}
+.emo-grid button:hover,.emo-grid button:focus-visible{background:#fff4f6}
+.emo-grid .stk{width:100%;height:100%}
+.emo-tip{margin:8px 2px 0;font:500 12px var(--sans);color:var(--muted)}
