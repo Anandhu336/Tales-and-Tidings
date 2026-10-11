@@ -440,7 +440,7 @@
       chips.push(['💍', yesText]);
       $('#qChips').innerHTML = chips.map(([e, t], i) => `<span class="q-chip" style="--i:${i}">${stk(e)}${esc(t)}</span>`).join('');
       const wa = $('#qWa');
-      if (wa) wa.href = `https://wa.me/${String(data.whatsapp || '').replace(/[^\d]/g, '')}?text=${encodeURIComponent((data.replyText || '').trim() + '\n\n' + chips.map(c => c.join(' ')).join('\n'))}`;
+      if (wa) wa.href = u.waLink(data.whatsapp, (data.replyText || '').trim() + '\n\n' + chips.map(c => c.join(' ')).join('\n'));
       T(fx.rain, 300);
     }
     if (preview) finish();

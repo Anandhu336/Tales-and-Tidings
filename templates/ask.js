@@ -234,7 +234,7 @@
       A.push(`<p class="a-tap">tap one to claim it ✨</p><div class="a-coups">${coupons.map((c, i) => `<button class="a-coup" type="button"><span class="ic">${ic[i % ic.length]}</span><span><b>Sorry coupon</b>${esc(c.text)}</span></button>`).join('')}</div>`);
     }
     const wa = String(data.whatsapp || '').replace(/[^\d]/g, ''), reply = (data.replyText || '').trim();
-    const waHref = extra => `https://wa.me/${wa}?text=${encodeURIComponent(reply + (extra ? '\n\n' + extra : ''))}`;
+    const waHref = extra => u.waLink(wa, reply + (extra ? '\n\n' + extra : ''));
     if (reply) A.push(`<div class="a-row"><a class="a-btn a-yes" id="aWa" href="${esc(waHref(''))}" target="_blank" rel="noopener">${esc(from ? 'Tell ' + from : 'Send your answer')} 💬</a></div>`);
 
     const nH = u.LITE ? 7 : 11;

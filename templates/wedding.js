@@ -515,7 +515,7 @@
           const c = (data.rsvpContact || '').trim(), text = encodeURIComponent('Hello! Replying to the invitation for ' + names.join(' & ') + "'s wedding. ");
           let href = '';
           if (c) {
-            if (data.rsvpMethod === 'whatsapp') { const digits = c.replace(/[^\d]/g, ''); if (digits) href = 'https://wa.me/' + digits + '?text=' + text; }
+            if (data.rsvpMethod === 'whatsapp') { const digits = c.replace(/[^\d]/g, ''); if (digits) href = 'https://api.whatsapp.com/send?phone=' + digits + '&text=' + text; } // not wa.me: it breaks emoji
             else if (data.rsvpMethod === 'sms') href = 'sms:' + c.replace(/[^\d+]/g, '') + '?&body=' + text;
             else if (data.rsvpMethod === 'email') href = 'mailto:' + c + '?subject=' + encodeURIComponent('RSVP: ' + names.join(' & ')) + '&body=' + text;
             else href = u.safeUrl(c);

@@ -463,7 +463,7 @@
       `<div class="c-main">${S.join('')}</div>` +
       `<div class="c-bar"><button type="button" id="cSnd" aria-label="Music on or off">${UI.soundOff}</button><button type="button" id="cShare" aria-label="Share">${UI.share}</button><button type="button" id="cMenu" aria-label="Menu">${UI.menu}</button></div>` +
       `<nav class="c-nav" id="cNav"><ul>${nav.map(([id, l]) => `<li><a href="#${id}">${esc(l)}</a></li>`).join('')}</ul></nav>` +
-      `<a class="c-wa" id="cWa" href="https://wa.me/?text=${encodeURIComponent('You are invited to ' + pairTxt + "'s wedding! " + shareUrl)}" target="_blank" rel="noopener" aria-label="Share on WhatsApp"${useCover ? ' hidden' : ''}>${UI.wa}</a>` +
+      `<a class="c-wa" id="cWa" href="${esc(u.waLink('', 'You are invited to ' + pairTxt + "'s wedding! " + shareUrl))}" target="_blank" rel="noopener" aria-label="Share on WhatsApp"${useCover ? ' hidden' : ''}>${UI.wa}</a>` +
       (useCover ? coverHtml(false) : '');
 
     const $ = s => root.querySelector(s);
@@ -527,7 +527,7 @@
     on(window, 'keydown', e => { if (e.key === 'Escape') { closeLb(); closeModal(); navEl.classList.remove('open'); } });
 
     /* greetings modal + rsvp -> WhatsApp */
-    const sendWa = text => { if (!wa) return u.toast('Add a WhatsApp number in the editor to receive replies.'); window.open('https://wa.me/' + wa + '?text=' + encodeURIComponent(text), '_blank', 'noopener'); };
+    const sendWa = text => { if (!wa) return u.toast('Add a WhatsApp number in the editor to receive replies.'); window.open(u.waLink(wa, text), '_blank', 'noopener'); };
     let modal = null;
     const closeModal = () => { if (modal) { modal.remove(); modal = null; } };
     const openWish = () => {

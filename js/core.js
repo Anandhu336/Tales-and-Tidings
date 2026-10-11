@@ -68,6 +68,8 @@
   u.mapsQuery = p => [p && p.name, p && p.address].filter(Boolean).join(', ');
   u.mapsUrl = p => u.safeUrl(p && p.url) || (u.mapsQuery(p) ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(u.mapsQuery(p)) : '');
   u.mapsEmbed = p => u.mapsQuery(p) ? 'https://maps.google.com/maps?q=' + encodeURIComponent(u.mapsQuery(p)) + '&z=15&output=embed' : '';
+  /* a WhatsApp message link. Not wa.me: its redirect turns emoji like 💖 into "�" */
+  u.waLink = (phone, text) => { const p = String(phone || '').replace(/[^\d]/g, ''); return 'https://api.whatsapp.com/send?' + (p ? 'phone=' + p + '&' : '') + 'text=' + encodeURIComponent(text || ''); };
   u.youtubeId = url => { const m = /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/))([\w-]{11})/.exec(String(url || '')); return m ? m[1] : ''; };
 
   /* ---- calendar file (.ics) ---- */
@@ -144,7 +146,7 @@
     const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('Could not load ' + src)); document.head.append(s);
   }));
   /* a file can register a family of templates: 'wedding-hindu' lives in templates/wedding.js */
-  KS.V = '19'; // bump when templates change so phones fetch the new files instead of a cached copy
+  KS.V = '20'; // bump when templates change so phones fetch the new files instead of a cached copy
   KS.loadTemplate = async id => { if (!KS.templates[id]) await u.loadScript('templates/' + String(id).split('-')[0] + '.js?v=' + KS.V); if (!KS.templates[id]) throw new Error('Unknown template'); return KS.templates[id]; };
   u.font = href => { if (document.querySelector('link[data-ks-font="' + href + '"]')) return; const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.dataset.ksFont = href; document.head.append(l); };
 })();

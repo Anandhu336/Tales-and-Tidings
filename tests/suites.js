@@ -64,7 +64,8 @@ window.SUITES = async () => {
     const ics = await (await w.fetch(d.querySelector('#aIcs').href)).text();
     H.ok(/DTSTART:\d{8}T183000/.test(ics), 'calendar file should start at 18:30 on their day: ' + (/DTSTART[^\r]*/.exec(ics) || [''])[0]);
     const wa = decodeURIComponent(d.querySelector('#aWa').href);
-    H.ok(wa.startsWith('https://wa.me/919876543210?text='), 'WhatsApp link goes to the wrong number: ' + wa.slice(0, 40));
+    H.ok(wa.startsWith('https://api.whatsapp.com/send?phone=919876543210&text='), 'WhatsApp link goes to the wrong number (or uses wa.me, which breaks emoji): ' + wa.slice(0, 50));
+    H.ok(/💖/.test(wa) && /📅/.test(wa), 'emoji should survive in the WhatsApp message');
     picked.forEach(p => H.ok(wa.includes(p), 'WhatsApp message is missing the pick "' + p + '"'));
     return picked.join(', ');
   });
