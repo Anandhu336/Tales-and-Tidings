@@ -1,4 +1,4 @@
-/* Keepsake backend: talks to Supabase with plain fetch (no library).
+/* Tales & Tidings backend: talks to Supabase with plain fetch (no library).
    Setup: see SETUP.md and supabase/setup.sql. Keys go in config.js. */
 (function () {
   'use strict';

@@ -1,4 +1,4 @@
-/* Keepsake music: built-in library, an uploaded file, or a YouTube link.
+/* Tales & Tidings music: built-in library, an uploaded file, or a YouTube link.
    start() must be called from inside a tap/click, otherwise the browser blocks the sound. */
 (function () {
   'use strict';

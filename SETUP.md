@@ -1,13 +1,13 @@
-# Setting up Keepsake (about 10 minutes, one time)
+# Setting up Tales & Tidings (about 10 minutes, one time)
 
-Keepsake stores published pages, photos and songs in **Supabase**, a free online database. You do this once.
+Tales & Tidings stores published pages, photos and songs in **Supabase**, a free online database. You do this once.
 
 Until you do, everything works except the **Publish** button. You can still design and preview pages.
 
 ## 1. Make a free Supabase project
 
 1. Go to **supabase.com** and sign up (the "Continue with GitHub" button is quickest).
-2. Click **New project**. Give it any name, for example `keepsake`.
+2. Click **New project**. Give it any name, for example `tales-and-tidings`.
 3. Choose a database password (save it somewhere, you will not need it again here), pick the region closest to you, and click **Create new project**.
 4. Wait about a minute while it starts.
 

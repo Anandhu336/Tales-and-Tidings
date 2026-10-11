@@ -1,4 +1,4 @@
--- Keepsake: one-time Supabase setup.
+-- Tales & Tidings: one-time Supabase setup.
 -- Supabase dashboard -> SQL Editor -> New query -> paste this whole file -> Run.
 -- Safe to run more than once.
 

@@ -1,4 +1,4 @@
-/* Keepsake editor: turns a template's `schema` into a form. Every field type a template can use lives here.
+/* Tales & Tidings editor: turns a template's `schema` into a form. Every field type a template can use lives here.
    Field types: text, textarea, date, time, choice, color, toggle, image, place, repeater, reset.
    choice: `resets: [keys]` clears those keys when picked.  color: `default` may be a function(data).  reset: button that clears `keys`. */
 (function () {

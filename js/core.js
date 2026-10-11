@@ -1,4 +1,4 @@
-/* Keepsake core: namespace + small helpers shared by the builder, the viewer and every template.
+/* Tales & Tidings core: namespace + small helpers shared by the builder, the viewer and every template.
    Plain scripts (no modules) so the site also works when opened straight from a folder. */
 (function () {
   'use strict';
@@ -60,7 +60,7 @@
     let dt;
     if (time) { const e = endTime ? u.parseDate(date, endTime) : new Date(s.getTime() + 3 * 36e5); dt = `DTSTART:${stampT(s)}\r\nDTEND:${stampT(e > s ? e : new Date(s.getTime() + 3 * 36e5))}`; }
     else { const e = new Date(s.getTime() + 864e5); dt = `DTSTART;VALUE=DATE:${stamp(s)}\r\nDTEND;VALUE=DATE:${stamp(e)}`; }
-    const txt = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Keepsake//EN', 'BEGIN:VEVENT', 'UID:' + Date.now() + '@keepsake', 'DTSTAMP:' + new Date().toISOString().replace(/[-:]|\.\d+/g, ''),
+    const txt = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tales and Tidings//EN', 'BEGIN:VEVENT', 'UID:' + Date.now() + '@talesandtidings', 'DTSTAMP:' + new Date().toISOString().replace(/[-:]|\.\d+/g, ''),
       dt, 'SUMMARY:' + esc(title), place ? 'LOCATION:' + esc(u.mapsQuery(place)) : '', note ? 'DESCRIPTION:' + esc(note) : '', 'END:VEVENT', 'END:VCALENDAR'].filter(Boolean).join('\r\n');
     return URL.createObjectURL(new Blob([txt], { type: 'text/calendar' }));
   };
