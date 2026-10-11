@@ -13,6 +13,24 @@
   u.rand = (a, b) => a + Math.random() * (b - a);
   u.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   u.RM = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  /* phones and small tablets: draw canvases at a lower resolution and with fewer particles so animations stay smooth */
+  u.LITE = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches) || (navigator.hardwareConcurrency || 8) <= 4;
+  u.dpr = () => Math.min(window.devicePixelRatio || 1, u.LITE ? 1.5 : 2);
+  /* resize that ignores the phone address bar sliding in and out (only width or a big height change counts) */
+  u.onResize = (fn, ms) => {
+    let w = innerWidth, h = innerHeight, t = 0;
+    const h2 = () => { clearTimeout(t); t = setTimeout(() => { if (innerWidth === w && Math.abs(innerHeight - h) < 160) return; w = innerWidth; h = innerHeight; fn(); }, ms || 200); };
+    addEventListener('resize', h2);
+    return () => { clearTimeout(t); removeEventListener('resize', h2); };
+  };
+  /* background photos marked data-bg load only when they come near the screen, so the first view opens fast */
+  u.lazyBg = (root, eager) => {
+    const els = [...root.querySelectorAll('[data-bg]')], set = e => { e.style.backgroundImage = e.dataset.bg; e.removeAttribute('data-bg'); };
+    if (eager || !('IntersectionObserver' in window)) { els.forEach(set); return null; }
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { set(e.target); io.unobserve(e.target); } }), { rootMargin: '600px 0px' });
+    els.forEach(e => io.observe(e));
+    return io;
+  };
   u.clone = o => JSON.parse(JSON.stringify(o));
   u.esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -95,6 +113,7 @@
     const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('Could not load ' + src)); document.head.append(s);
   }));
   /* a file can register a family of templates: 'wedding-hindu' lives in templates/wedding.js */
-  KS.loadTemplate = async id => { if (!KS.templates[id]) await u.loadScript('templates/' + String(id).split('-')[0] + '.js'); if (!KS.templates[id]) throw new Error('Unknown template'); return KS.templates[id]; };
+  KS.V = '9'; // bump when templates change so phones fetch the new files instead of a cached copy
+  KS.loadTemplate = async id => { if (!KS.templates[id]) await u.loadScript('templates/' + String(id).split('-')[0] + '.js?v=' + KS.V); if (!KS.templates[id]) throw new Error('Unknown template'); return KS.templates[id]; };
   u.font = href => { if (document.querySelector('link[data-ks-font="' + href + '"]')) return; const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.dataset.ksFont = href; document.head.append(l); };
 })();

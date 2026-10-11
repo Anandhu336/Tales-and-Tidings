@@ -95,7 +95,7 @@
   .tpl-celestial *{box-sizing:border-box}
   .tpl-celestial a{color:inherit}
   .tpl-celestial .c-btn,.tpl-celestial .c-tile,.tpl-celestial .c-wa{color:#fff}
-  .c-bgfix{position:fixed;inset:0;z-index:0;pointer-events:none;background:var(--lattice) 0 0/160px 160px repeat;opacity:.34}
+  .c-bgfix{position:fixed;inset:0;z-index:0;pointer-events:none;background:var(--lattice) 0 0/160px 160px repeat;opacity:.34;transform:translateZ(0)}
   .c-main{position:relative;z-index:1}
   .c-wrap{width:min(1000px,100%);margin:0 auto;padding:0 16px}
   .c-sec{padding:56px 0 30px;text-align:center;position:relative}
@@ -129,8 +129,8 @@
   .c-flora svg{display:block;width:100%;height:auto}
   .c-flora.tl{top:-14px;left:-14px}.c-flora.tr{top:-14px;right:-14px;transform:scaleX(-1)}
   .c-flora.bl{bottom:-10px;left:-10px}.c-flora.br{bottom:-10px;right:-10px;transform:scaleX(-1)}
-  .c-lan{position:absolute;top:0;width:38px;transform-origin:50% 0;animation:csway 5s ease-in-out infinite alternate;filter:drop-shadow(0 0 10px rgba(255,200,90,.55))}
-  .c-lan svg{display:block;width:100%;height:auto}
+  .c-lan{position:absolute;top:0;width:38px;transform-origin:50% 0;animation:csway 5s ease-in-out infinite alternate;will-change:transform}
+  .c-lan svg{display:block;width:100%;height:auto;filter:drop-shadow(0 0 10px rgba(255,200,90,.55))}
   .c-lan.a{left:calc(50% - min(44vw,330px));top:110px}.c-lan.b{right:calc(50% - min(44vw,330px));top:110px;animation-delay:-2.5s}
   .c-lan.c{left:calc(50% - min(40vw,300px) - 6px);top:250px;width:44px;animation-delay:-1.2s}.c-lan.d{right:calc(50% - min(40vw,300px) - 6px);top:250px;width:44px;animation-delay:-3.6s}
   @keyframes csway{from{transform:rotate(-3deg)}to{transform:rotate(3deg)}}
@@ -414,7 +414,7 @@
       S.push(`<section class="c-sec" id="cWhen"><div class="c-wrap">${head('When & Where')}<div class="c-events">${events.map(e => {
         const map = u.mapsUrl(e.place), p = e.place || {}, d = u.fmtDate(e.date, { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }), comma = d.indexOf(',');
         const dateHtml = d ? (comma > 0 ? `${esc(d.slice(0, comma + 1))} <b>${esc(d.slice(comma + 1).trim())}${e.time ? ', ' + esc(timeLine(e.time, e.suffix)) : ''}</b>` : `<b>${esc(d)}</b>`) : (e.time ? `<b>${esc(timeLine(e.time, e.suffix))}</b>` : '');
-        return `<div class="c-ev c-rv"><div class="pic" ${e.photo ? `style="background-image:${esc(cssUrl(e.photo))}"` : ''}>${e.photo ? '' : (ICONS[e.icon] || ICONS.mandap)}</div>
+        return `<div class="c-ev c-rv"><div class="pic" ${e.photo ? `data-bg="${esc(cssUrl(e.photo))}"` : ''}>${e.photo ? '' : (ICONS[e.icon] || ICONS.mandap)}</div>
           <h4>${esc(e.title || 'Celebration')}</h4>${dateHtml ? `<p>${dateHtml}</p>` : ''}
           ${p.name || p.address ? `<p>${esc([p.name, p.address].filter(Boolean).join(', '))}</p>` : ''}
           ${e.contact ? `<p>Contact: <a href="tel:${esc(e.contact.replace(/[^\d+]/g, ''))}">${esc(e.contact)}</a></p>` : ''}
@@ -426,7 +426,7 @@
     const gal = (data.gallery || []).filter(g => g && g.img);
     if (gal.length) {
       nav.push(['cGal', 'Gallery']);
-      S.push(`<section class="c-sec" id="cGal"><div class="c-wrap">${head('Gallery')}<div class="c-gal c-rv">${gal.map((g, i) => `<button type="button" data-i="${i}" aria-label="Open photo ${i + 1}" style="background-image:${esc(cssUrl(g.img))}"></button>`).join('')}</div></div></section>`);
+      S.push(`<section class="c-sec" id="cGal"><div class="c-wrap">${head('Gallery')}<div class="c-gal c-rv">${gal.map((g, i) => `<button type="button" data-i="${i}" aria-label="Open photo ${i + 1}" data-bg="${esc(cssUrl(g.img))}"></button>`).join('')}</div></div></section>`);
     }
 
     /* video */
@@ -470,6 +470,8 @@
     const timers = [], cleanups = [];
     const on = (t, ev, fn) => { t.addEventListener(ev, fn); cleanups.push(() => t.removeEventListener(ev, fn)); };
 
+    const lazy = u.lazyBg(root, preview);
+
     /* reveal on scroll */
     let io = null;
     if (!preview && 'IntersectionObserver' in window) {
@@ -480,18 +482,20 @@
     /* countdown */
     const cd = $('#cCd');
     if (cd) {
+      let nums = null;
       const draw = () => {
         const ms = when - new Date();
-        if (ms <= 0) { cd.innerHTML = `<p class="c-cdbig">${u.daysUntil(date) === 0 ? 'Today is the day!' : 'Just married!'}</p>`; return; }
-        const d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60, s = Math.floor(ms / 1e3) % 60;
-        cd.innerHTML = `<div class="c-cd">${[[d, 'Days'], [h, 'Hours'], [m, 'Minutes'], [s, 'Seconds']].map(([v, l]) => `<div><b>${String(v).padStart(2, '0')}</b><span>${l}</span></div>`).join('')}</div>`;
+        if (ms <= 0) { cd.innerHTML = `<p class="c-cdbig">${u.daysUntil(date) === 0 ? 'Today is the day!' : 'Just married!'}</p>`; nums = null; return; }
+        const v = [Math.floor(ms / 864e5), Math.floor(ms / 36e5) % 24, Math.floor(ms / 6e4) % 60, Math.floor(ms / 1e3) % 60].map(x => String(x).padStart(2, '0'));
+        if (!nums) { cd.innerHTML = `<div class="c-cd">${['Days', 'Hours', 'Minutes', 'Seconds'].map(l => `<div><b></b><span>${l}</span></div>`).join('')}</div>`; nums = [...cd.querySelectorAll('b')]; }
+        nums.forEach((b, i) => { if (b.textContent !== v[i]) b.textContent = v[i]; });
       };
       draw(); timers.push(setInterval(draw, preview ? 30000 : 1000));
     }
 
     /* top bar: music, share, menu */
     const snd = $('#cSnd'), music = ctx.music;
-    const drawSnd = () => { snd.innerHTML = music && music.playing ? UI.soundOn : UI.soundOff; };
+    let sndOn = null; const drawSnd = () => { const on = !!(music && music.playing); if (on !== sndOn) { sndOn = on; snd.innerHTML = on ? UI.soundOn : UI.soundOff; } };
     if (!music || !music.has) snd.hidden = true;
     on(snd, 'click', () => { if (music.playing) music.toggle(); else { music.muted = false; music.start(); } setTimeout(drawSnd, 300); });
     timers.push(setInterval(drawSnd, 1500));
@@ -550,7 +554,7 @@
         ctx.start(); setTimeout(drawSnd, 400);
         cover.classList.add('gone'); document.body.style.overflow = prevOv;
         const w = $('#cWa'); if (w) w.hidden = false;
-        if (data.petals !== false && !u.RM) for (let i = 0; i < 34; i++) {
+        if (data.petals !== false && !u.RM) for (let i = 0, n = u.LITE ? 20 : 34; i < n; i++) {
           const p = el('span', { class: 'c-petal' });
           p.style.cssText = `left:${u.rand(0, 100)}vw;animation-duration:${u.rand(4, 8)}s;animation-delay:${u.rand(0, 2.5)}s;--dx:${u.rand(-60, 60)}px;transform:scale(${u.rand(.6, 1.2)})`;
           root.append(p); timers.push(setTimeout(() => p.remove(), 11000));
@@ -561,7 +565,7 @@
 
     return {
       destroy() {
-        timers.forEach(t => { clearInterval(t); clearTimeout(t); }); cleanups.forEach(f => f()); if (io) io.disconnect(); closeLb(); closeModal();
+        timers.forEach(t => { clearInterval(t); clearTimeout(t); }); cleanups.forEach(f => f()); if (io) io.disconnect(); if (lazy) lazy.disconnect(); closeLb(); closeModal();
         style.remove(); root.textContent = ''; root.className = ''; root.style.cssText = ''; document.body.style.background = prevBg; document.body.style.overflow = prevOv;
       }
     };

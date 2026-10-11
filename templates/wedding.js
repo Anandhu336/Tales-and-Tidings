@@ -256,14 +256,15 @@
   .w-env.gone{opacity:0;visibility:hidden}
   .w-env .hint{font:500 11px var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--muted);text-align:center;min-height:16px}
   .w-env h1{font-family:var(--sc);font-weight:var(--sc-w);font-style:var(--sc-fs);letter-spacing:var(--sc-ls);text-transform:var(--sc-tt);font-size:calc(clamp(30px,8vw,46px)*var(--k2));color:var(--accent);margin:0;text-align:center;line-height:1.2}
-  .env{width:min(88vw,430px);aspect-ratio:1.5;position:relative;perspective:1100px;filter:drop-shadow(0 22px 30px var(--shadow))}
+  .env{width:min(88vw,430px);aspect-ratio:1.5;position:relative;perspective:1100px}
   .env>*{position:absolute}
-  .env-back{inset:0;background:var(--env2);border-radius:calc(var(--rad)/3)}
+  .env-back{inset:0;background:var(--env2);border-radius:calc(var(--rad)/3);box-shadow:0 22px 40px var(--shadow)}
   .env-back{z-index:1}
-  .env-card{left:7%;right:7%;top:9%;bottom:9%;background:var(--paper);border-radius:calc(var(--rad)/5);z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px;transition:transform 1.1s cubic-bezier(.3,.7,.2,1) .55s;border:1px solid var(--soft);padding:0 8px}
+  .env-card{left:7%;right:7%;top:9%;bottom:9%;background:var(--paper);border-radius:calc(var(--rad)/5);z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px;transition:transform 1.1s cubic-bezier(.3,.7,.2,1) .55s;border:1px solid var(--soft);padding:0 8px;will-change:transform}
   .env-card b{font-family:var(--sc);font-weight:var(--sc-w);font-style:var(--sc-fs);letter-spacing:var(--sc-ls);text-transform:var(--sc-tt);font-size:calc(clamp(24px,7vw,36px)*var(--k2));line-height:1.1;color:var(--accent)}.env-card span{font:500 8.5px var(--sans);letter-spacing:.3em;text-transform:uppercase;color:var(--muted)}
   .env-front{inset:0;z-index:4;background:var(--env);clip-path:polygon(0 0,50% 54%,100% 0,100% 100%,0 100%);border-radius:calc(var(--rad)/3)}
-  .env-flap{left:0;right:0;top:0;height:56%;background:var(--env);clip-path:polygon(0 0,100% 0,50% 100%);transform-origin:top;z-index:5;transition:transform .9s ease,z-index 0s .45s;backface-visibility:visible;filter:brightness(.97)}
+  .env-flap{left:0;right:0;top:0;height:56%;background:var(--env);clip-path:polygon(0 0,100% 0,50% 100%);transform-origin:top;z-index:5;transition:transform .9s ease,z-index 0s .45s;backface-visibility:visible;will-change:transform}
+  .env-flap::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,.03)}
   .seal{left:50%;top:54%;width:clamp(58px,15vw,74px);aspect-ratio:1;margin:calc(clamp(58px,15vw,74px)/-2) 0 0 calc(clamp(58px,15vw,74px)/-2);border-radius:50%;z-index:6;cursor:pointer;appearance:none;border:0;padding:0;
     background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--seal) 70%,#fff),var(--seal) 55%,color-mix(in srgb,var(--seal) 70%,#000));box-shadow:0 3px 8px rgba(0,0,0,.35),inset 0 0 0 3px color-mix(in srgb,var(--seal) 80%,#000);color:var(--sealink);font-family:var(--sc);font-weight:var(--sc-w);font-style:var(--sc-fs);font-size:calc(clamp(22px,6vw,30px)*var(--k2));display:grid;place-items:center;transition:transform .3s,opacity .5s;animation:wpulse 2.2s ease-in-out infinite}
   .seal svg{width:50%;height:auto;display:block}
@@ -288,8 +289,8 @@
   .d-muslim .w-arc svg.line{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
   .d-muslim .w-arc svg.line path{fill:none;stroke:currentColor;stroke-width:1.4;vector-effect:non-scaling-stroke}
   .d-muslim .w-arc svg.line path.b{opacity:.45}
-  .d-muslim .w-lantern{position:absolute;top:-22px;transform-origin:50% 0;animation:wsway 5.5s ease-in-out infinite alternate;filter:drop-shadow(0 0 9px color-mix(in srgb,var(--accent) 65%,transparent))}
-  .d-muslim .w-lantern svg{display:block;width:100%;height:auto}
+  .d-muslim .w-lantern{position:absolute;top:-22px;transform-origin:50% 0;animation:wsway 5.5s ease-in-out infinite alternate;will-change:transform}
+  .d-muslim .w-lantern svg{display:block;width:100%;height:auto;filter:drop-shadow(0 0 9px color-mix(in srgb,var(--accent) 65%,transparent))}
   .d-muslim .w-lantern.a{left:2px;width:46px}.d-muslim .w-lantern.b{right:2px;width:36px;animation-delay:-2.4s}
   @keyframes wsway{from{transform:rotate(-3deg)}to{transform:rotate(3deg)}}
   .d-muslim .w-bless{font:400 clamp(24px,6.2vw,36px)/1.7 'Amiri','Noto Serif Devanagari',serif;font-style:normal;color:var(--accent)}
@@ -505,7 +506,7 @@
         /* gallery */
         const gal = (data.gallery || []).filter(g => g.img);
         if (gal.length) sections.push(`<section class="w-sec"><div class="w-wrap"><p class="w-eyebrow w-reveal">Moments</p><h2 class="w-h2 w-reveal">A few favourites</h2><div class="w-gal">${gal.map((g, i) =>
-          `<figure class="w-reveal" data-i="${i}"><img loading="lazy" src="${esc(g.img)}" alt="${esc(g.caption || 'Photo')}">${g.caption ? `<figcaption>${esc(g.caption)}</figcaption>` : ''}</figure>`).join('')}</div></div></section>`);
+          `<figure class="w-reveal" data-i="${i}"><img loading="lazy" decoding="async" src="${esc(g.img)}" alt="${esc(g.caption || 'Photo')}">${g.caption ? `<figcaption>${esc(g.caption)}</figcaption>` : ''}</figure>`).join('')}</div></div></section>`);
         /* info */
         const info = (data.info || []).filter(i => i.title || i.text);
         if (info.length) sections.push(`<section class="w-sec"><div class="w-wrap"><p class="w-eyebrow w-reveal">Good to know</p><h2 class="w-h2 w-reveal">Details</h2><div class="w-info">${info.map(i => `<div class="w-reveal"><b>${esc(i.title)}</b><p>${esc(i.text)}</p></div>`).join('')}</div></div></section>`);
@@ -549,11 +550,13 @@
         let tick = 0;
         const cd = root.querySelector('#wCount');
         if (cd && when) {
+          let nums = null;
           const draw = () => {
             const ms = when - new Date();
-            if (ms <= 0) { cd.innerHTML = `<p class="w-big">${u.daysUntil(date) === 0 ? 'Today is the day!' : 'Married!'}</p>`; return; }
-            const d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60, s = Math.floor(ms / 1e3) % 60;
-            cd.innerHTML = `<div class="w-count w-reveal in">${[[d, 'Days'], [h, 'Hours'], [m, 'Minutes'], [s, 'Seconds']].map(([v, l]) => `<div><b>${String(v).padStart(2, '0')}</b><span>${l}</span></div>`).join('')}</div>`;
+            if (ms <= 0) { cd.innerHTML = `<p class="w-big">${u.daysUntil(date) === 0 ? 'Today is the day!' : 'Married!'}</p>`; nums = null; return; }
+            const v = [Math.floor(ms / 864e5), Math.floor(ms / 36e5) % 24, Math.floor(ms / 6e4) % 60, Math.floor(ms / 1e3) % 60].map(x => String(x).padStart(2, '0'));
+            if (!nums) { cd.innerHTML = `<div class="w-count w-reveal in">${['Days', 'Hours', 'Minutes', 'Seconds'].map(l => `<div><b></b><span>${l}</span></div>`).join('')}</div>`; nums = [...cd.querySelectorAll('b')]; }
+            nums.forEach((b, i) => { if (b.textContent !== v[i]) b.textContent = v[i]; });
           };
           draw(); if (!preview) tick = setInterval(draw, 1000); else tick = setInterval(draw, 30000);
         }

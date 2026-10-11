@@ -37,12 +37,13 @@ canvas.fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
 .rv{opacity:0;transition:opacity 1.2s ease,transform 1.2s ease}
 .rv:not(.gseg){transform:translateY(14px)}
 .rv.on{opacity:1;transform:none}
-@keyframes rise{from{opacity:0;transform:translateY(14px);filter:blur(7px)}to{opacity:1;transform:none;filter:blur(0)}}
 
 #bed{position:absolute;z-index:3;left:0;right:0;bottom:0;height:var(--bedh)}
-.fl{position:absolute;bottom:0;width:var(--w);height:calc(var(--w) * 2.3);margin-left:calc(var(--w) / -2);transform-origin:50% 100%;
-  filter:drop-shadow(0 0 12px var(--glow,rgba(255,120,170,.4)))}
-.fl.back{filter:brightness(.68) saturate(.9);opacity:.9}
+.fl{position:absolute;bottom:0;width:var(--w);height:calc(var(--w) * 2.3);margin-left:calc(var(--w) / -2);transform-origin:50% 100%}
+.fl::before{content:'';position:absolute;left:50%;top:24%;width:150%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;z-index:-1;
+  background:radial-gradient(circle,var(--glow,rgba(255,120,170,.4)) 0,transparent 62%);opacity:0;pointer-events:none}
+.fl.back{opacity:.6}
+.play .fl::before{animation:fadein 1.2s ease both;animation-delay:calc(var(--d) + 1.6s)}
 .fl svg{display:block;overflow:visible;width:100%;height:100%}
 .stem{transform:scaleY(0)}
 .head{transform:scale(0) rotate(-50deg)}
@@ -59,16 +60,6 @@ canvas.fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
 .replay button{appearance:none;border:1px solid var(--line);background:rgba(10,10,40,.5);color:var(--muted);border-radius:999px;padding:7px 14px;font:500 12px var(--sans);letter-spacing:.06em;cursor:pointer}
 .play .replay{animation:fadein 1.4s ease both;animation-delay:var(--endDelay);pointer-events:auto}
 @keyframes fadein{to{opacity:1}}
-
-/* ---------- intro ---------- */
-#intro{position:absolute;inset:0;z-index:12;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px;
-  background:radial-gradient(90% 70% at 50% 60%,rgba(20,14,60,.55),rgba(5,6,26,.94));transition:opacity 1.2s ease}
-#intro.gone{opacity:0;pointer-events:none}
-.seed{width:16px;height:16px;border-radius:50%;background:#ffe3a3;box-shadow:0 0 18px 6px rgba(255,216,138,.65),0 0 60px 20px rgba(255,180,120,.3);animation:pulse 2.4s ease-in-out infinite}
-@keyframes pulse{50%{transform:scale(1.35);box-shadow:0 0 28px 10px rgba(255,216,138,.75),0 0 90px 30px rgba(255,180,120,.35)}}
-#intro p{margin:0;font:italic 400 clamp(24px,5vw,34px)/1.25 var(--serif);max-width:520px}
-#intro small{font:500 12px var(--sans);letter-spacing:.24em;text-transform:uppercase;color:var(--gold)}
-#openBtn{margin-top:10px}
 
 /* ---------- intro ---------- */
 #intro{position:fixed;inset:0;z-index:12;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px;
@@ -156,6 +147,7 @@ canvas.fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
         .tpl-garden .static .rv{transition:none!important;opacity:1;transform:none}
         .tpl-garden .static .stem,.tpl-garden .static .head{transform:none!important;animation:none!important}
         .tpl-garden .static .fl{animation:none!important}
+        .tpl-garden .static .fl::before{animation:none!important;opacity:1}
         .tpl-garden .static #msgwrap{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.3) transparent}
         .tpl-garden .static .replay{display:none}`);
       document.head.append(extra);
@@ -204,7 +196,7 @@ canvas.fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
       }
 
       /* ---------------- message ---------------- */
-      const state = { petalsOn: false, timer: 0, timers: [], glide: 0, revealOn: false, raf: 0, dead: false };
+      const state = { pend: [], petalsOn: false, timer: 0, timers: [], glide: 0, revealOn: false, raf: 0, dead: false };
       function buildMessage() {
         const wrap = $('#msgwrap'); wrap.textContent = '';
         const mk = (cls, tag, text) => { const e = document.createElement(tag); e.className = cls + ' rv'; e.textContent = text; wrap.appendChild(e); return e; };
@@ -219,14 +211,15 @@ canvas.fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
         });
         if (cfg.from) mk('from', 'div', '— ' + cfg.from);
         if (cfg.date) mk('date', 'div', u.fmtDate(cfg.date, { day: 'numeric', month: 'long', year: 'numeric' }));
+        state.pend = [...wrap.querySelectorAll('.rv')];
       }
       function reveal() {
-        if (!state.revealOn) return;
-        const w = $('#msgwrap'), limit = w.scrollTop + w.clientHeight - 6; let k = 0;
-        w.querySelectorAll('.rv:not(.on)').forEach(e => {
-          if (e.offsetTop >= limit) return;
-          e.style.transitionDelay = Math.min(k++ * STAGGER, 1.2).toFixed(2) + 's'; e.classList.add('on');
-        });
+        if (!state.revealOn || !state.pend.length) return;
+        const w = $('#msgwrap'), limit = w.scrollTop + w.clientHeight - 6;
+        const due = state.pend.filter(e => e.offsetTop < limit);
+        if (!due.length) return;
+        state.pend = state.pend.filter(e => !due.includes(e));
+        due.forEach((e, k) => { e.style.transitionDelay = Math.min(k * STAGGER, 1.2).toFixed(2) + 's'; e.classList.add('on'); });
       }
       function buildBed() {
         const bed = $('#bed'); bed.textContent = '';
@@ -269,7 +262,7 @@ canvas.fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
         state.timers.forEach(clearTimeout); state.timers = []; const id = ++state.glide; state.revealOn = false;
         g.classList.remove('play');
         buildMessage(); buildBed(); w.scrollTop = 0;
-        if (preview) { state.revealOn = true; w.querySelectorAll('.rv').forEach(e => e.classList.add('on')); return; }
+        if (preview) { state.revealOn = true; state.pend.forEach(e => e.classList.add('on')); state.pend = []; return; }
         const start = RM ? 0 : START, dist = w.scrollHeight - w.clientHeight;
         const chars = w.textContent.length || 1, pxs = Math.min(90, Math.max(12, w.scrollHeight / chars * CPS));
         const scrolls = !RM && dist > 4;
@@ -293,18 +286,22 @@ canvas.fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
       /* ---------------- sky particles ---------------- */
       const back = { cv: $('#fxBack') }, front = { cv: $('#fxFront') };
       back.ctx = back.cv.getContext('2d'); front.ctx = front.cv.getContext('2d');
-      let W = 0, H = 0, DPR = 1, T = 0, last = 0, stars = [], flies = [], petals = [], shoot = null, nextShoot = rand(5, 10);
+      let W = 0, H = 0, DPR = 1, T = 0, last = 0, stars = [], flies = [], petals = [], shoot = null, nextShoot = rand(5, 10), frontDirty = false;
+      const fly = document.createElement('canvas'); fly.width = fly.height = 64;
+      (() => { const g = fly.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+        gr.addColorStop(0, 'rgba(255,236,150,1)'); gr.addColorStop(.25, 'rgba(255,216,110,.38)'); gr.addColorStop(1, 'rgba(255,200,90,0)');
+        g.fillStyle = gr; g.fillRect(0, 0, 64, 64); })();
       function seedFx() {
-        DPR = Math.min(window.devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight;
+        DPR = u.dpr(); W = innerWidth; H = innerHeight;
         for (const L of [back, front]) { L.cv.width = W * DPR; L.cv.height = H * DPR; L.ctx.setTransform(DPR, 0, 0, DPR, 0, 0); }
-        stars = Array.from({ length: clamp(Math.round(W * H / 7500), 60, 220) }, () => ({ x: rand(0, W), y: rand(0, H * .8), r: rand(.4, 1.5), p: rand(0, 6.28), s: rand(.6, 2), b: rand(.5, 1) }));
-        flies = Array.from({ length: RM ? 0 : clamp(Math.round(W / 50), 10, 26) }, () => ({ x: rand(0, W), y: rand(H * .4, H * .95), a: rand(0, 6.28), sp: rand(10, 26), ph: rand(0, 6.28), r: rand(9, 16) }));
+        stars = Array.from({ length: clamp(Math.round(W * H / 7500), 60, u.LITE ? 120 : 220) }, () => ({ x: rand(0, W), y: rand(0, H * .8), r: rand(.4, 1.5), p: rand(0, 6.28), s: rand(.6, 2), b: rand(.5, 1) }));
+        flies = Array.from({ length: RM ? 0 : clamp(Math.round(W / 50), u.LITE ? 8 : 10, u.LITE ? 14 : 26) }, () => ({ x: rand(0, W), y: rand(H * .4, H * .95), a: rand(0, 6.28), sp: rand(10, 26), ph: rand(0, 6.28), r: rand(9, 16) }));
       }
       function frame(now) {
         if (state.dead) return;
         const dt = Math.min(.05, ((now - last) / 1000) || .016); last = now; T += dt;
         const b = back.ctx, f = front.ctx;
-        b.clearRect(0, 0, W, H); f.clearRect(0, 0, W, H);
+        b.clearRect(0, 0, W, H); if (frontDirty) { f.clearRect(0, 0, W, H); frontDirty = false; }
         b.fillStyle = '#e4eaff';
         for (const s of stars) { b.globalAlpha = (RM ? .6 : .3 + .7 * (.5 + .5 * Math.sin(T * s.s + s.p))) * s.b; b.beginPath(); b.arc(s.x, s.y, s.r, 0, 6.283); b.fill(); }
         b.globalAlpha = 1;
@@ -323,15 +320,14 @@ canvas.fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
             q.a += (Math.random() - .5) * 2.2 * dt; q.x += Math.cos(q.a) * q.sp * dt; q.y += Math.sin(q.a) * q.sp * .6 * dt;
             if (q.x < -20) q.x = W + 20; if (q.x > W + 20) q.x = -20; if (q.y < H * .3) q.a = Math.abs(q.a); if (q.y > H) q.y = H * .5;
             const glow = Math.pow(.5 + .5 * Math.sin(T * 1.5 + q.ph), 2), R = q.r;
-            const gr = b.createRadialGradient(q.x, q.y, 0, q.x, q.y, R);
-            gr.addColorStop(0, `rgba(255,236,150,${.15 + .85 * glow})`); gr.addColorStop(.25, `rgba(255,216,110,${.35 * glow})`); gr.addColorStop(1, 'rgba(255,200,90,0)');
-            b.fillStyle = gr; b.beginPath(); b.arc(q.x, q.y, R, 0, 6.283); b.fill();
+            b.globalAlpha = .15 + .85 * glow; b.drawImage(fly, q.x - R, q.y - R, R * 2, R * 2);
           }
-          if (state.petalsOn && petals.length < 26 && Math.random() < dt * 1.6) petals.push({ x: rand(0, W), y: -20, vy: rand(24, 46), sw: rand(.6, 1.6), ph: rand(0, 6.28), rot: rand(0, 6.28), vr: rand(-1.2, 1.2), sz: rand(5, 9), h: Math.random() < .8 });
+          b.globalAlpha = 1;
+          if (state.petalsOn && petals.length < (u.LITE ? 16 : 26) && Math.random() < dt * 1.6) petals.push({ x: rand(0, W), y: -20, vy: rand(24, 46), sw: rand(.6, 1.6), ph: rand(0, 6.28), rot: rand(0, 6.28), vr: rand(-1.2, 1.2), sz: rand(5, 9), h: Math.random() < .8 });
           for (let i = petals.length - 1; i >= 0; i--) {
             const p = petals[i]; p.y += p.vy * dt; p.x += Math.sin(T * p.sw + p.ph) * 26 * dt; p.rot += p.vr * dt;
             if (p.y > H + 20) { petals.splice(i, 1); continue; }
-            f.save(); f.translate(p.x, p.y); f.rotate(p.rot); f.scale(1, .6 + .4 * Math.abs(Math.sin(T + p.ph)));
+            frontDirty = true; f.save(); f.translate(p.x, p.y); f.rotate(p.rot); f.scale(1, .6 + .4 * Math.abs(Math.sin(T + p.ph)));
             f.fillStyle = p.h ? 'rgba(248,160,192,.85)' : 'rgba(210,180,255,.8)';
             f.beginPath(); f.ellipse(0, 0, p.sz * .55, p.sz, 0, 0, 6.283); f.fill(); f.restore();
           }
@@ -339,8 +335,7 @@ canvas.fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
         state.raf = requestAnimationFrame(frame);
       }
       seedFx(); state.raf = requestAnimationFrame(frame);
-      let rz; const onResize = () => { clearTimeout(rz); rz = setTimeout(() => { seedFx(); if ($('#intro').hidden) buildBed(); }, 150); };
-      addEventListener('resize', onResize);
+      const offResize = u.onResize(() => { seedFx(); if ($('#intro').hidden) buildBed(); });
 
       /* ---------------- start ---------------- */
       $('#introText').textContent = data.introText || (cfg.to ? 'A little garden for ' + cfg.to : 'A little garden, just for you');
@@ -353,7 +348,7 @@ canvas.fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
       return {
         destroy() {
           state.dead = true; cancelAnimationFrame(state.raf); clearTimeout(state.timer); state.timers.forEach(clearTimeout); state.glide++;
-          removeEventListener('resize', onResize); style.remove(); extra.remove(); root.textContent = ''; root.className = ''; root.style.cssText = ''; document.body.style.background = prevBg;
+          offResize(); style.remove(); extra.remove(); root.textContent = ''; root.className = ''; root.style.cssText = ''; document.body.style.background = prevBg;
         }
       };
     }

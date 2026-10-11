@@ -11,8 +11,8 @@
   };
 
   const CSS = `
-  .tpl-birthday{--disp:'Baloo 2','Trebuchet MS',system-ui,sans-serif;--hand:'Caveat','Comic Sans MS',cursive;--body:'Nunito',system-ui,sans-serif;font-family:var(--body);color:var(--ink);min-height:100vh;overflow-x:hidden;
-    background:linear-gradient(160deg,var(--bg1),var(--bg2));background-attachment:fixed}
+  .tpl-birthday{--disp:'Baloo 2','Trebuchet MS',system-ui,sans-serif;--hand:'Caveat','Comic Sans MS',cursive;--body:'Nunito',system-ui,sans-serif;font-family:var(--body);color:var(--ink);min-height:100vh;overflow-x:hidden}
+  .tpl-birthday::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:linear-gradient(160deg,var(--bg1),var(--bg2));transform:translateZ(0)}
   .tpl-birthday *{box-sizing:border-box}
   .b-main{position:relative;z-index:2}
   .b-wrap{width:min(920px,100%);margin:0 auto;padding:0 20px}
@@ -240,7 +240,7 @@
         `<div class="b-wish b-rise" style="--c:${cols[i % cols.length]};--r:${((i % 3) - 1) * 1.4}deg"><p>${esc(w.text)}</p>${w.from ? `<cite>${esc(w.from)}</cite>` : ''}</div>`).join('')}</div></div></section>`);
       const photos = (data.photos || []).filter(p => p.img);
       if (photos.length) S.push(`<section class="b-sec"><div class="b-wrap"><h2 class="b-h2 b-rise">Good <span>times</span></h2><div class="b-pols">${photos.map((p, i) =>
-        `<button class="b-pol b-rise" type="button" data-i="${i}" style="--r:${[-3, 2.5, -1.5, 3, -2.5][i % 5]}deg"><i style="background-image:url('${esc(p.img)}')"></i><span>${esc(p.caption || '')}</span></button>`).join('')}</div></div></section>`);
+        `<button class="b-pol b-rise" type="button" data-i="${i}" style="--r:${[-3, 2.5, -1.5, 3, -2.5][i % 5]}deg"><i data-bg="url('${esc(p.img)}')"></i><span>${esc(p.caption || '')}</span></button>`).join('')}</div></div></section>`);
       if (data.partyOn) {
         const pl = data.partyPlace || {}, hasPl = pl.name || pl.address, d = u.parseDate(data.partyDate), maps = hasPl ? u.mapsUrl(pl) : '';
         const ics = data.partyDate ? u.ics({ title: (name ? name + "'s birthday party" : 'Birthday party'), date: data.partyDate, time: data.partyTime, place: hasPl ? pl : null, note: data.partyNote }) : '';
@@ -262,25 +262,29 @@
         root.querySelectorAll('.b-rise').forEach(n => io.observe(n));
       } else root.querySelectorAll('.b-rise').forEach(n => n.classList.add('in'));
 
+      const lazy = u.lazyBg(root, preview);
+
       /* confetti */
       const cv = root.querySelector('#bConf'), cx = cv.getContext('2d'); let parts = [], raf = 0, W = 0, H = 0, dead = false;
-      const fit = () => { const d = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight; cv.width = W * d; cv.height = H * d; cx.setTransform(d, 0, 0, d, 0, 0); };
-      fit(); addEventListener('resize', fit);
+      let D = 1; const fit = () => { D = u.dpr(); W = innerWidth; H = innerHeight; cv.width = W * D; cv.height = H * D; cx.setTransform(D, 0, 0, D, 0, 0); };
+      fit(); const offResize = u.onResize(fit);
       function step() {
-        cx.clearRect(0, 0, W, H);
+        cx.setTransform(D, 0, 0, D, 0, 0); cx.clearRect(0, 0, W, H);
         for (let i = parts.length - 1; i >= 0; i--) {
           const p = parts[i]; p.vy += .22; p.vx *= .992; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life++;
           if (p.y > H + 30 || p.life > 260) { parts.splice(i, 1); continue; }
-          cx.save(); cx.translate(p.x, p.y); cx.rotate(p.rot); cx.globalAlpha = Math.min(1, (260 - p.life) / 50); cx.fillStyle = p.c;
+          const c = Math.cos(p.rot) * D, sn = Math.sin(p.rot) * D;
+          cx.setTransform(c, sn, -sn, c, p.x * D, p.y * D); cx.globalAlpha = Math.min(1, (260 - p.life) / 50); cx.fillStyle = p.c;
           if (p.round) { cx.beginPath(); cx.arc(0, 0, p.s / 2, 0, 6.283); cx.fill(); } else cx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
-          cx.restore();
         }
+        cx.setTransform(D, 0, 0, D, 0, 0); cx.globalAlpha = 1;
         raf = parts.length && !dead ? requestAnimationFrame(step) : 0;
         if (!parts.length) cx.clearRect(0, 0, W, H);
       }
       function burst(x, y, n) {
         if (u.RM) return;
-        for (let i = 0; i < (n || 90); i++) { const a = rand(-Math.PI, 0), v = rand(4, 13); parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 2, c: cols[i % cols.length], s: rand(6, 12), rot: rand(0, 6), vr: rand(-.3, .3), round: Math.random() < .3, life: 0 }); }
+        n = Math.round((n || 90) * (u.LITE ? .55 : 1));
+        for (let i = 0; i < n; i++) { const a = rand(-Math.PI, 0), v = rand(4, 13); parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 2, c: cols[i % cols.length], s: rand(6, 12), rot: rand(0, 6), vr: rand(-.3, .3), round: Math.random() < .3, life: 0 }); }
         if (!raf) raf = requestAnimationFrame(step);
       }
       const rain = () => { for (let k = 0; k < 6; k++) setTimeout(() => { burst(rand(W * .1, W * .9), H * .35, 40); }, k * 160); };
@@ -317,7 +321,7 @@
 
       return {
         destroy() {
-          dead = true; cancelAnimationFrame(raf); if (io) io.disconnect(); closeLb(); removeEventListener('keydown', onKey); removeEventListener('resize', fit);
+          dead = true; cancelAnimationFrame(raf); if (io) io.disconnect(); closeLb(); removeEventListener('keydown', onKey); offResize(); if (lazy) lazy.disconnect();
           style.remove(); root.textContent = ''; root.className = ''; root.style.cssText = ''; document.body.style.background = prevBg; document.body.style.overflow = prevOv;
         }
       };
