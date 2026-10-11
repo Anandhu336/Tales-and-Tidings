@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tales &amp; Tidings tests</title>
+<style>
+  body{margin:0;background:#222}
+  iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff}
+</style>
+</head>
+<body>
+<!-- Runs tests/suites.js. Each test gets a fresh copy of the site in a full-screen iframe.
+     Start it with: node tests/run.mjs (it reads the results from the console). -->
+<script>
+'use strict';
+const H = window.H = {};
+H.sleep = ms => new Promise(r => setTimeout(r, ms));
+H.until = async (fn, ms, what) => { const t0 = Date.now(); for (;;) { const v = fn(); if (v) return v; if (Date.now() - t0 > (ms || 5000)) throw new Error('timed out waiting for ' + (what || 'something')); await H.sleep(50); } };
+H.ok = (c, msg) => { if (!c) throw new Error(msg || 'check failed'); };
+H.eq = (a, b, msg) => { if (a !== b) throw new Error((msg ? msg + ': ' : '') + 'expected ' + JSON.stringify(b) + ', got ' + JSON.stringify(a)); };
+let frame = null;
+
+/* load a page of the site in a fresh iframe */
+H.open = async src => {
+  if (frame) frame.remove();
+  frame = document.createElement('iframe'); frame.src = src; document.body.append(frame);
+  await new Promise(r => frame.addEventListener('load', r, { once: true }));
+  return { w: frame.contentWindow, d: frame.contentDocument };
+};
+/* show a design: live = what a visitor sees, otherwise the builder's preview */
+H.render = async (t, over, live) => {
+  const ready = new Promise(r => { const f = e => { if (e.data && e.data.type === 'ks-ready') { removeEventListener('message', f); r(); } }; addEventListener('message', f); });
+  const { w, d } = await H.open('../index.html?preview=1');
+  await ready;
+  const T = await w.KS.loadTemplate(t), data = Object.assign(JSON.parse(JSON.stringify(T.sample || {})), over || {});
+  w.postMessage({ type: 'ks-render', t, d: data, m: null, live: live !== false }, '*');
+  await H.until(() => d.querySelector('#stage') && d.querySelector('#stage').children.length, 5000, 'the design to appear');
+  await H.sleep(300);
+  return { w, d, T, data };
+};
+H.rect = el => el.getBoundingClientRect();
+H.inView = (w, el) => { const r = H.rect(el); return r.width > 0 && r.left >= -1 && r.top >= -1 && r.right <= w.innerWidth + 1 && r.bottom <= w.innerHeight + 1; };
+H.press = (w, el, type, x, y, extra) => { const r = H.rect(el); el.dispatchEvent(new w.PointerEvent(type || 'pointerdown', Object.assign({ bubbles: true, cancelable: true, pointerType: 'touch', pointerId: 1, isPrimary: true, clientX: x != null ? x : r.left + r.width / 2, clientY: y != null ? y : r.top + r.height / 2 }, extra || {}))); };
+H.ids = async () => { const src = await (await fetch('../js/app.js')).text(); return JSON.parse(/const IDS = (\[[^\]]*\])/.exec(src)[1].replace(/'/g, '"')); };
+/* how many frames took too long while something animates */
+H.frames = async (w, ms) => { const d = []; let last = w.performance.now(), on = true; w.requestAnimationFrame(function f(n) { d.push(n - last); last = n; if (on) w.requestAnimationFrame(f); }); await H.sleep(ms); on = false; return { n: d.length, slow: d.filter(x => x > 50).length, max: Math.round(Math.max(...d)) }; };
+</script>
+<script src="suites.js"></script>
+<script>
+(async () => {
+  const only = new URLSearchParams(location.search).get('only') || '';
+  for (const t of await window.SUITES()) {
+    if (only && !t.name.includes(only)) continue;
+    console.log('§start ' + t.name);
+    try {
+      const note = await Promise.race([t.fn(H), H.sleep(t.timeout || 60000).then(() => { throw new Error('took too long'); })]);
+      if (note && note.skip) console.log('§skip ' + t.name + '§§' + note.skip);
+      else console.log('§pass ' + t.name + '§§' + (note || ''));
+    } catch (e) { console.log('§fail ' + t.name + '§§' + (e && e.message || e)); }
+    await H.sleep(50);
+  }
+  console.log('§done');
+})();
+</script>
+</body>
+</html>

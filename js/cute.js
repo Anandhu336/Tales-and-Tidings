@@ -156,12 +156,13 @@
   .k-photo img{display:block;width:100%;height:auto;max-height:44vh;object-fit:cover;border-radius:3px}
   .k-photo figcaption{font:700 clamp(19px,5vw,23px)/1.2 var(--hand);color:#3b2a1a;padding:8px 2px 2px;text-align:center}
   /* emoji with no animated version still move: a gentle bounce and wiggle */
+  .stk.still{transform-origin:50% 85%;animation:kemo 2.6s ease-in-out infinite;animation-delay:calc(var(--i,0) * -.37s)}
   .stk-t{display:inline-block;font-family:'Noto Color Emoji',sans-serif;font-style:normal;transform-origin:50% 85%;animation:kemo 2.6s ease-in-out infinite;animation-delay:calc(var(--i,0) * -.37s)}
   @keyframes kemo{0%,100%{transform:translateY(0) rotate(0) scale(1)}20%{transform:translateY(-8%) rotate(-7deg) scale(1.06)}40%{transform:translateY(0) rotate(0) scale(.98)}60%{transform:translateY(-4%) rotate(6deg) scale(1.04)}80%{transform:translateY(0) rotate(0) scale(1)}}
   .k-conf{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:60}
   .ks-credit{font:600 10px var(--body);color:var(--muted);opacity:.7;margin:26px 0 0}.ks-credit a{color:inherit}
   .is-static .k-pet{animation:none}
-  @media(prefers-reduced-motion:reduce){.k-pet,.k-bub.pop,.k-react.on,.stk-t{animation:none}}`;
+  @media(prefers-reduced-motion:reduce){.k-pet,.k-bub.pop,.k-react.on,.stk-t,.stk.still{animation:none}}`;
 
   /* ---------- the little guide ---------- */
   C.guide = (pet, first, photo) => {

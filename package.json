@@ -1,0 +1,8 @@
+{
+  "name": "tales-and-tidings",
+  "private": true,
+  "description": "Tales & Tidings: invitations and little pages for the people you love. A static site, no build step.",
+  "scripts": {
+    "test": "node tests/run.mjs"
+  }
+}

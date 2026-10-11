@@ -7,6 +7,10 @@
   'use strict';
   const KS = window.KS, u = KS.util, C = KS.cute, esc = u.esc, rand = u.rand, stk = u.stk;
 
+  const WHEN_TIMES = '☀️ Morning 10:00\n🍽️ Lunch 13:00\n🌆 Evening 18:30\n🌙 Late night 21:00';
+  const pad2 = n => String(n).padStart(2, '0'), isoDay = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const whenText = (d, t) => [u.fmtDate(d, { weekday: 'long', day: 'numeric', month: 'long' }), u.fmtTime(t)].filter(Boolean).join(' at ');
+
   const MODES = {
     date: {
       guide: '😺', theme: 'pink', faces: ['🥺', '🙀', '😿', '😾', '😭', '💔', '🙏', '🥹'], happy: '😻',
@@ -15,13 +19,13 @@
       gaveUp: 'See? Even the button agrees 😌', yay: 'Yaaay!! 🎉', pickLines: ['Ooh, good question 🤔', 'Pick one, pookie 🐾', 'Choose wisely 😼', 'I vote snacks 🍿'], end: 'It’s official!! 🥳',
       noLines: 'No\nAre you sure?\nReally sure??\nThink again 🤔\nPretty please?\nWith extra fries?\nI’ll pay for dessert!\nYou’re breaking my heart 💔\nOkay, this button is broken now',
       sample: {
-        to: 'Maya', question: 'Will you go on a date with me?', sub: 'I’ve been wanting to ask for a while…', theme: 'pink', photo: '', guide: '😺', guideLines: '',
+        to: 'Maya', gateOn: true, gateText: '', question: 'Will you go on a date with me?', sub: 'I’ve been wanting to ask for a while…', theme: 'pink', photo: '', guide: '😺', guideLines: '',
         yesText: 'Yes!', yayTitle: 'Yaaay! 😻', yayLine: 'You just made this kitty the happiest in the whole world', planBtn: 'Let’s plan it, pookie 🐾',
         steps: [
           { q: 'Okay pookie, what are we doing?', options: '🍿 Movie night\n🍕 Pizza date\n☕ Cozy café\n🍦 Ice cream walk\n🌅 Sunset somewhere pretty\n🎡 Fun fair' },
-          { q: 'And what are we eating, my little kitty?', options: '🍕 Pizza\n🍔 Burgers\n🍜 Noodles\n🍿 Snacks & a movie\n🍦 Only dessert\n🧋 Bubble tea' },
-          { q: 'When are you free, cutie?', options: '✨ This weekend\n🌅 Tomorrow!\n🥳 Right now!\n💌 You pick, I’ll be there' }
+          { q: 'And what are we eating, my little kitty?', options: '🍕 Pizza\n🍔 Burgers\n🍜 Noodles\n🍿 Snacks & a movie\n🍦 Only dessert\n🧋 Bubble tea' }
         ],
+        whenOn: true, whenQ: 'When are you free, cutie? 📅', whenTimes: WHEN_TIMES,
         endTitle: 'It’s a date, pookie! 💖', message: 'I can’t wait.\nI promise it’ll be fun (and there will be snacks).', from: 'Arjun',
         planOn: true, planTitle: 'Here’s the plan', planDate: '', planTime: '19:30', planPlace: { name: '', address: '', url: '' }, planNote: 'Wear something comfy. I’ll pick you up 🚗',
         whatsapp: '', replyText: 'YES! 💖 I’d love to go on a date with you.'
@@ -34,7 +38,7 @@
       gaveUp: 'Forgiveness accepted by the button too 😌', yay: 'Yaaay, hug time! 🫂', end: 'Friends again!! 💞',
       noLines: 'No\nPlease?\nI said sorry 🥺\nI’ll buy you snacks\nAnd do the dishes\nFor a whole week!\nOkay, two weeks\nFine, I’m crying now 😭',
       sample: {
-        to: 'Sam', question: 'I’m really sorry. Forgive me?', sub: 'I was wrong, and I miss you already.', theme: 'lavender', photo: '', guide: '🐻', guideLines: '',
+        to: 'Sam', gateOn: true, gateText: '', question: 'I’m really sorry. Forgive me?', sub: 'I was wrong, and I miss you already.', theme: 'lavender', photo: '', guide: '🐻', guideLines: '',
         yesText: 'Okay, forgiven', yayTitle: 'Thank you! 🤍', message: 'I’ll do better. Here are a few things I owe you, claim them whenever you like.', from: 'Alex',
         coupons: [{ text: 'One free hug, any time' }, { text: 'I do the dishes for a week' }, { text: 'Your pick of movie, no complaints' }, { text: 'Unlimited snacks, on me' }],
         whatsapp: '', replyText: 'Okay okay, you’re forgiven 🤗'
@@ -100,9 +104,38 @@
   .a-picks{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:0 auto 24px;max-width:480px}
   .a-pick{display:flex;align-items:center;gap:6px;background:var(--card);border-radius:999px;padding:6px 14px 6px 6px;font:var(--bw) 15px var(--body);box-shadow:0 4px 0 var(--pop2)}
   .a-pick .stk,.a-pick .stk-t{width:32px;height:32px;font-size:24px;line-height:32px;text-align:center}
+  /* pick the date and time */
+  .a-wl{font:700 23px var(--hand);color:var(--pop);margin:6px 0 8px}
+  .a-days{display:flex;gap:10px;overflow-x:auto;width:calc(100% + 40px);margin:0 -20px;padding:6px 20px 14px;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .a-days::-webkit-scrollbar{display:none}
+  .a-day{flex:none;scroll-snap-align:start;appearance:none;cursor:pointer;border:3px solid transparent;background:var(--card);color:var(--ink);border-radius:18px;padding:10px 6px 9px;width:76px;box-shadow:0 5px 0 var(--pop2);
+    display:flex;flex-direction:column;align-items:center;gap:2px;font:var(--bw) 12px var(--body);transition:transform .15s,border-color .15s;touch-action:manipulation;animation:kpop .4s cubic-bezier(.2,1.4,.4,1) both;animation-delay:calc(var(--i) * 40ms)}
+  .a-day b{font:var(--dw) 26px/1.05 var(--disp);color:var(--pop)}
+  .a-times{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:min(100%,440px)}
+  .a-time{appearance:none;cursor:pointer;border:3px solid transparent;background:var(--card);color:var(--ink);border-radius:18px;padding:10px 12px;display:flex;align-items:center;gap:10px;text-align:left;
+    font:var(--bw) 15px/1.2 var(--body);box-shadow:0 5px 0 var(--pop2);transition:transform .15s,border-color .15s;touch-action:manipulation}
+  .a-time .stk,.a-time .stk-t{width:40px;height:40px;flex:none;font-size:30px;line-height:40px;text-align:center}
+  .a-time small{display:block;color:var(--muted);font-size:13px}
+  .a-day.sel,.a-time.sel{border-color:var(--pop);transform:scale(1.05)}
+  .a-other{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:12px 0 16px;font:var(--bw) 14px var(--body);color:var(--muted)}
+  .a-other input{font:var(--bw) 16px var(--body);color:var(--ink);background:var(--card);border:2px solid var(--pop2);border-radius:12px;padding:8px 10px;min-height:44px}
+  .a-other input:focus{outline:none;border-color:var(--pop)}
+  .a-wgo{margin-top:8px}.a-wgo:disabled{opacity:.45;cursor:default}
   .a-pv{position:relative;z-index:2;text-align:center;font:var(--bw) 12px var(--body);letter-spacing:.2em;text-transform:uppercase;color:var(--muted);padding:14px 0;border-top:2px dashed color-mix(in srgb,var(--muted) 40%,transparent);margin:0 20px}
+  /* opening screen: their tap opens the page and starts the music (phones only allow sound after a tap) */
+  .a-gate{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;cursor:pointer;
+    background:radial-gradient(var(--dot) 2.4px,transparent 3px) 0 0/30px 30px,radial-gradient(120% 80% at 50% 0%,var(--bg1),var(--bg2));transition:opacity .55s ease,visibility .55s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  .a-gate.gone{opacity:0;visibility:hidden}
+  .a-gate .env{width:min(50vw,200px);aspect-ratio:1;animation:agwig 1.8s ease-in-out infinite}
+  .a-gate .env .stk{width:100%;height:100%}.a-gate .env .stk-t{font-size:min(40vw,160px);line-height:1;animation:none}
+  .a-gate.open .env{animation:agopen .55s cubic-bezier(.3,1.4,.5,1) forwards}
+  @keyframes agwig{0%,60%,100%{transform:rotate(0)}12%{transform:rotate(-8deg) scale(1.05)}24%{transform:rotate(7deg)}36%{transform:rotate(-4deg)}48%{transform:rotate(2deg)}}
+  @keyframes agopen{to{transform:scale(1.5) rotate(-6deg);opacity:0}}
+  .a-gate h1{font:var(--dw) clamp(28px,8vw,44px)/1.12 var(--disp);margin:0;max-width:520px;text-wrap:balance}
+  .a-gate p{font:var(--bw) 14px var(--body);letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin:6px 0 0;animation:agpulse 1.4s ease-in-out infinite}
+  @keyframes agpulse{50%{opacity:.4}}
   .is-static .a-hearts i,.is-static .a-enter,.is-static .a-opt,.is-static .a-yes.jelly{animation:none}
-  @media(prefers-reduced-motion:reduce){.a-hearts i,.a-enter,.a-opt,.a-yes.jelly{animation:none}.a-no.fly,.a-yes{transition:none}}
+  @media(prefers-reduced-motion:reduce){.a-hearts i,.a-enter,.a-opt,.a-yes.jelly,.a-gate .env,.a-gate p{animation:none}.a-no.fly,.a-yes{transition:none}}
   `;
 
   const field = (key, type, label, more) => Object.assign({ key, type, label }, more || {});
@@ -110,14 +143,18 @@
   /* the pages a visitor goes through, for "Page by page" */
   const pagesOf = (mode, d) => {
     const st = stepsOf(mode, d);
-    return [['q', 'The question'], ['yes', 'After they say yes'], ...st.map((x, i) => ['s' + (i + 1), 'Planning page ' + (i + 1) + (x.q ? ': ' + x.q : '')]), ...(st.length ? [['end', 'Last page']] : [])];
+    const when = mode === 'date' && d.whenOn === true;
+    return [['q', 'The question'], ['yes', 'After they say yes'], ...st.map((x, i) => ['s' + (i + 1), 'Planning page ' + (i + 1) + (x.q ? ': ' + x.q : '')]),
+      ...(when ? [['when', 'Pick the date and time']] : []), ...(st.length || when ? [['end', 'Last page']] : [])];
   };
   const schema = mode => [
     { id: 'ask', title: mode === 'date' ? 'The question' : 'Your apology', open: true, fields: [
       field('to', 'text', 'Their name', { max: 30 }),
       field('question', 'text', 'The big question', { max: 80 }),
       field('sub', 'textarea', 'A line underneath (optional)', { rows: 2 }),
-      field('from', 'text', 'Your name', { max: 30 })
+      field('from', 'text', 'Your name', { max: 30 }),
+      field('gateOn', 'toggle', 'Start with a "tap to open" screen', { help: 'Phones only play music after the first tap, so this screen makes your song start the moment they open your page.' }),
+      field('gateText', 'text', 'Words on the opening screen', { max: 70, show: d => d.gateOn !== false, placeholder: 'You have a little message 💌' })
     ] },
     { id: 'guide', title: 'Little guide', fields: [
       ...C.guideFields(MODES[mode].guide, 'What your guide says each time they try No', 'One per line, in order. Leave empty for the built-in lines.'),
@@ -137,6 +174,9 @@
         { key: 'steps', type: 'repeater', label: 'Cute planning pages', max: 6, addLabel: 'Add a question page', itemLabel: 'Page', title: i => i.q, blank: { q: '', options: '' },
           help: 'Each page asks one fun question with choices to tap. Start a choice with an emoji (🍿 🍕 😻 💖 …) and it shows as an animated sticker. Their picks are sent back to you.',
           fields: [field('q', 'text', 'Question', { max: 80 }), field('options', 'textarea', 'Choices, one per line', { rows: 6, placeholder: '🍿 Movie night' })] },
+        field('whenOn', 'toggle', 'Let them pick the date and time', { help: 'Adds a planning page with day buttons, a calendar and time buttons. Their choice goes into the plan, the calendar file and the message they send you.' }),
+        field('whenQ', 'text', 'Question on that page', { max: 80, show: d => d.whenOn }),
+        field('whenTimes', 'textarea', 'Time choices, one per line', { rows: 4, show: d => d.whenOn, placeholder: WHEN_TIMES, help: 'End each line with the time, e.g. 🌆 Evening 18:30. They can also type any exact time.' }),
         field('endTitle', 'text', 'Title on the last page', { max: 60 })
       ] : []),
       field('message', 'textarea', 'Your message', { rows: 4 }),
@@ -170,6 +210,7 @@
     const yesText = (data.yesText || '').trim() || 'Yes';
     const to = (data.to || '').trim(), from = (data.from || '').trim();
     const pet = (data.guide || '').trim() || M.guide;
+    const whenOn = mode === 'date' && data.whenOn === true;
     const steps = stepsOf(mode, data), EX = C.extras(data), ids = pagesOf(mode, data).map(x => x[0]), ex = id => EX[id] || {};
 
     /* after-yes content */
@@ -178,10 +219,10 @@
       const pl = data.planPlace || {}, hasPl = !!(pl.name || pl.address), maps = hasPl ? u.mapsUrl(pl) : '';
       const when = [u.fmtDate(data.planDate), u.fmtTime(data.planTime)].filter(Boolean).join(' at ');
       const ics = data.planDate ? u.ics({ title: from ? 'Date with ' + from : 'Our date', date: data.planDate, time: data.planTime, place: hasPl ? pl : null, note: data.planNote }) : '';
-      A.push(`<div class="a-card"><h3>${esc(data.planTitle || 'Here’s the plan')}</h3>${when ? `<p class="a-when">${esc(when)}</p>` : ''}
+      A.push(`<div class="a-card"><h3>${esc(data.planTitle || 'Here’s the plan')}</h3><p class="a-when" id="aWhen"${when ? '' : ' hidden'}>${esc(when)}</p>
         ${hasPl ? `<p class="a-where">📍 ${esc(pl.name || pl.address)}</p>${pl.name && pl.address ? `<p class="a-addr">${esc(pl.address)}</p>` : ''}` : ''}
         ${data.planNote ? `<p class="a-note">${esc(data.planNote)}</p>` : ''}
-        ${maps || ics ? `<div class="a-row">${maps ? `<a class="a-btn a-yes a-sm" href="${esc(maps)}" target="_blank" rel="noopener">Directions</a>` : ''}${ics ? `<a class="a-btn a-alt a-sm" href="${ics}" download="our-date.ics">Add to calendar</a>` : ''}</div>` : ''}</div>`);
+        ${maps || ics || whenOn ? `<div class="a-row">${maps ? `<a class="a-btn a-yes a-sm" href="${esc(maps)}" target="_blank" rel="noopener">Directions</a>` : ''}<a class="a-btn a-alt a-sm" id="aIcs" href="${ics}" download="our-date.ics"${ics ? '' : ' hidden'}>Add to calendar</a></div>` : ''}</div>`);
     }
     const coupons = mode === 'sorry' ? (data.coupons || []).filter(c => c && (c.text || '').trim()) : [];
     if (coupons.length) {
@@ -198,9 +239,21 @@
     const pv = t => preview ? `<p class="a-pv">↓ ${t} ↓</p>` : '';
     const hid = preview ? '' : ' hidden';
     const sign = from ? `<p class="a-sign">— ${esc(from)}</p>` : '';
-    const paws = i => `<div class="a-paws" aria-label="Page ${i + 1} of ${steps.length}">${steps.map((_, k) => `<i class="${k <= i ? 'on' : ''}">🐾</i>`).join('')}</div>`;
+    const nPlan = steps.length + (whenOn ? 1 : 0), hasPlan = nPlan > 0;
+    const paws = i => `<div class="a-paws" aria-label="Page ${i + 1} of ${nPlan}">${Array.from({ length: nPlan }, (_, k) => `<i class="${k <= i ? 'on' : ''}">🐾</i>`).join('')}</div>`;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const TIMES = ((data.whenTimes || '').trim() || WHEN_TIMES).split('\n').map(l => { const m = /(\d{1,2}):(\d{2})\s*$/.exec(l.trim()); if (!m) return null; const o = u.splitEmoji(l.trim().slice(0, m.index)); return { e: o.e, l: o.l, t: pad2(+m[1]) + ':' + m[2] }; }).filter(Boolean);
+    const whenHtml = !whenOn ? '' : `${pv('pick the date and time')}<section class="a-scr a-step" data-step="${steps.length}" data-when${hid}>${paws(steps.length)}
+        <h2>${esc((data.whenQ || '').trim() || 'When are you free, cutie? 📅')}</h2>
+        <p class="a-wl">pick a day</p><div class="a-days">${Array.from({ length: 14 }, (_, k) => { const d = new Date(today); d.setDate(d.getDate() + k);
+          return `<button class="a-day" type="button" data-d="${isoDay(d)}" style="--i:${k}"><span>${k === 0 ? 'Today' : k === 1 ? 'Tomorrow' : esc(d.toLocaleDateString(undefined, { weekday: 'short' }))}</span><b>${d.getDate()}</b><span>${esc(d.toLocaleDateString(undefined, { month: 'short' }))}</span></button>`; }).join('')}</div>
+        <label class="a-other">or another day <input type="date" class="a-odate" min="${isoDay(today)}"></label>
+        <p class="a-wl">pick a time</p><div class="a-times">${TIMES.map(t => `<button class="a-time" type="button" data-t="${t.t}">${stk(t.e || '⏰')}<span>${esc(t.l || 'At')}<small>${esc(u.fmtTime(t.t))}</small></span></button>`).join('')}</div>
+        <label class="a-other">or an exact time <input type="time" class="a-otime"></label>
+        <button class="a-btn a-yes a-wgo" type="button" disabled>That works! 💖</button>
+        <button class="a-back" type="button">← back</button></section>`;
     const stepHtml = steps.map((st, i) => `${pv('page ' + (i + 2))}<section class="a-scr a-step" data-step="${i}"${hid}>${paws(i)}
-        <h2>${esc(st.q || 'Pick one, cutie')}</h2><div class="a-opts">${st.opts.map((o, k) => `<button class="a-opt" type="button" data-k="${k}" style="--i:${k}">${o.e ? stk(o.e) : ''}<span>${esc(o.l || o.e)}</span></button>`).join('')}</div>
+        <h2>${esc(st.q || 'Pick one, cutie')}</h2><div class="a-opts">${st.opts.map((o, k) => `<button class="a-opt" type="button" data-k="${k}" style="--i:${k}">${stk(o.e || '✨')}<span>${esc(o.l || o.e)}</span></button>`).join('')}</div>
         <button class="a-back" type="button">← back</button></section>`).join('');
 
     root.innerHTML = `<div class="a-hearts">${hearts}</div><canvas class="k-conf"></canvas>
@@ -211,15 +264,15 @@
         <div class="a-btns"><button class="a-btn a-yes" id="aYes" type="button">${esc(yesText)}</button><button class="a-btn a-no" id="aNo" type="button">${esc(NO[0])}</button></div></main>
       ${pv('after they say yes')}
       <section class="a-scr a-ans" id="aAns"${hid}>
-        <h2 class="a-yay">${esc(data.yayTitle || 'Yay!')}</h2>${data.yayLine && steps.length ? `<p class="a-yline">${esc(data.yayLine)}</p>` : ''}
-        ${steps.length ? `<button class="a-btn a-yes" id="aPlan" type="button">${esc(data.planBtn || 'Let’s plan it 🐾')}</button>`
+        <h2 class="a-yay">${esc(data.yayTitle || 'Yay!')}</h2>${data.yayLine && hasPlan ? `<p class="a-yline">${esc(data.yayLine)}</p>` : ''}
+        ${hasPlan ? `<button class="a-btn a-yes" id="aPlan" type="button">${esc(data.planBtn || 'Let’s plan it 🐾')}</button>`
           : `${data.message ? `<p class="a-msg">${esc(data.message)}</p>` : ''}${A.join('')}${sign}${u.STK_CREDIT}`}</section>
-      ${stepHtml}
-      ${steps.length ? `${pv('last page')}<section class="a-scr a-end" id="aEnd"${hid}><h2 class="a-yay">${esc(data.endTitle || 'It’s a date! 💖')}</h2>
+      ${stepHtml}${whenHtml}
+      ${hasPlan ? `${pv('last page')}<section class="a-scr a-end" id="aEnd"${hid}><h2 class="a-yay">${esc(data.endTitle || 'It’s a date! 💖')}</h2>
         <div class="a-picks" id="aPicks"></div>${data.message ? `<p class="a-msg">${esc(data.message)}</p>` : ''}${A.join('')}${sign}${u.STK_CREDIT}</section>` : ''}`;
 
     const $ = s => root.querySelector(s), q = $('#aQ'), ans = $('#aAns'), yes = $('#aYes'), no = $('#aNo');
-    const timers = [], T = (f, ms) => timers.push(setTimeout(f, ms));
+    const timers = [], T = (f, ms) => timers.push(setTimeout(f, ms)), cleanup = [];
 
     /* the guide lives at the top of whichever page is showing */
     const G = C.guide(ex('q').guide || pet, ex('q').say || M.first(to, from), data.photo);
@@ -228,6 +281,22 @@
     M.faces.forEach((e, i) => T(() => u.preloadStk(e), 1200 + i * 80));
 
     const fx = C.confetti($('.k-conf'), th.cols);
+
+    /* the opening screen */
+    if (!preview && data.gateOn !== false) {
+      const gate = u.el('div', { class: 'a-gate', role: 'button', tabindex: '0', 'aria-label': 'Tap to open',
+        html: `<div class="env">${stk(mode === 'date' ? '💌' : '🥺')}</div><h1>${esc((data.gateText || '').trim() || (to ? to + ', you have a little message 💌' : 'You have a little message 💌'))}</h1><p>tap to open</p>` });
+      const prevOv = document.body.style.overflow; document.body.style.overflow = 'hidden';
+      const open = () => {
+        if (gate.classList.contains('open')) return;
+        ctx.start(); gate.classList.add('open'); fx.at(gate.querySelector('.env'), 120);
+        T(() => { gate.classList.add('gone'); document.body.style.overflow = prevOv; say(G.el.textContent.trim() || M.first(to, from)); }, 380);
+        T(() => gate.remove(), 1000);
+      };
+      gate.addEventListener('click', open); gate.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+      root.append(gate);
+      cleanup.push(() => { document.body.style.overflow = prevOv; });
+    }
 
     /* the runaway No button */
     let tries = 0, last = 0, flying = false, gaveUp = false, said = false, ph = null;
@@ -287,8 +356,14 @@
         const got = picks.filter(Boolean);
         $('#aPicks').innerHTML = got.map(o => `<span class="a-pick">${o.e ? stk(o.e) : ''}${esc(o.l || o.e)}</span>`).join('');
         const w = $('#aWa'); if (w) w.href = waHref(got.map(o => [o.e, o.l].filter(Boolean).join(' ')).join('\n'));
+        if (picked) { // their date goes on the plan card and into the calendar file
+          const wl = $('#aWhen'), ic = $('#aIcs'), pl = data.planPlace || {};
+          if (wl) { wl.textContent = whenText(picked.d, picked.t); wl.hidden = false; }
+          if (ic) { ic.href = u.ics({ title: from ? 'Date with ' + from : 'Our date', date: picked.d, time: picked.t, place: pl.name || pl.address ? pl : null, note: data.planNote }); ic.hidden = false; }
+        }
         T(fx.rain, 200);
-      } else if (my.say || M.pickLines) say(my.say || M.pickLines[(at - 2) % M.pickLines.length], steps[at - 2].opts[0].e || null);
+      } else if (p.hasAttribute('data-when')) say(my.say || 'Pick any day you like 📅', '😻');
+      else if (my.say || M.pickLines) say(my.say || M.pickLines[(at - 2) % M.pickLines.length], steps[at - 2].opts[0].e || null);
     };
 
     function sayYes(e) {
@@ -302,7 +377,23 @@
     yes.addEventListener('click', sayYes);
     const plan = $('#aPlan'); if (plan) plan.addEventListener('click', () => go(2));
     if (!preview && pages[2]) T(() => pages[2].querySelectorAll('img.stk').forEach(im => { new Image().src = im.src; }), 2500);
-    root.querySelectorAll('.a-step').forEach(sec => {
+    let picked = null; // the day and time they chose
+    root.querySelectorAll('.a-step[data-when]').forEach(sec => {
+      const i = +sec.dataset.step, ch = { d: '', t: '' }, go2 = sec.querySelector('.a-wgo'), od = sec.querySelector('.a-odate'), ot = sec.querySelector('.a-otime');
+      const upd = () => { go2.disabled = !(ch.d && ch.t); if (ch.d && ch.t) go2.textContent = whenText(ch.d, ch.t) + ' 💖'; };
+      sec.querySelectorAll('.a-day').forEach(b => b.addEventListener('click', () => {
+        sec.querySelectorAll('.a-day').forEach(x => x.classList.toggle('sel', x === b)); ch.d = b.dataset.d; od.value = '';
+        fx.at(b, 16); say(['Ooh, ' + b.textContent.replace(/\s+/g, ' ').trim() + '? 😻', 'That day works! 🥳', 'Yesss 💖'][Math.floor(Math.random() * 3)]); upd();
+      }));
+      od.addEventListener('change', () => { if (!od.value) return; ch.d = od.value; sec.querySelectorAll('.a-day').forEach(x => x.classList.remove('sel')); say('A special day, I see ✨'); upd(); });
+      sec.querySelectorAll('.a-time').forEach(b => b.addEventListener('click', () => {
+        sec.querySelectorAll('.a-time').forEach(x => x.classList.toggle('sel', x === b)); ch.t = b.dataset.t; ot.value = ''; fx.at(b, 16); say('Perfect timing 💖', '🥰'); upd();
+      }));
+      ot.addEventListener('change', () => { if (!ot.value) return; ch.t = ot.value; sec.querySelectorAll('.a-time').forEach(x => x.classList.remove('sel')); say('Noted! ⏰'); upd(); });
+      go2.addEventListener('click', () => { if (!(ch.d && ch.t)) return; picked = { d: ch.d, t: ch.t }; picks[i] = { e: '📅', l: whenText(ch.d, ch.t) }; fx.at(go2, 60); T(() => go(i + 3), 450); });
+      sec.querySelector('.a-back').addEventListener('click', () => go(i + 1));
+    });
+    root.querySelectorAll('.a-step:not([data-when])').forEach(sec => {
       const i = +sec.dataset.step;
       sec.querySelectorAll('.a-opt').forEach(b => b.addEventListener('click', () => {
         sec.querySelectorAll('.a-opt').forEach(x => x.classList.toggle('sel', x === b));
@@ -319,7 +410,7 @@
 
     return {
       destroy() {
-        fx.destroy(); timers.forEach(clearTimeout);
+        fx.destroy(); timers.forEach(clearTimeout); cleanup.forEach(f => f());
         style.remove(); root.textContent = ''; root.className = ''; root.style.cssText = ''; document.body.style.background = prevBg;
       }
     };

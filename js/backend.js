@@ -20,6 +20,12 @@
   B.newId = () => rnd(10, ABC);
   B.newKey = () => rnd(28, ABC);
 
+  /* fetch, but a dead connection gets a message people can act on instead of "Failed to fetch" */
+  const net = (url, opts) => fetch(url, opts).catch(() => {
+    throw new Error(navigator.onLine === false ? 'You seem to be offline. Connect to the internet and try again.'
+      : 'Could not reach the page database. If your internet is working, the site’s Supabase project may be paused or deleted: open your Supabase dashboard and restore it (see SETUP.md).');
+  });
+
   async function must(res) {
     if (res.ok) return res;
     let msg = ''; try { const j = await res.clone().json(); msg = j.message || j.error || j.msg || ''; } catch (_) {}
@@ -29,18 +35,18 @@
   B.publicUrl = path => base() + '/storage/v1/object/public/media/' + path;
 
   B.upload = async (blob, path, type) => {
-    const res = await fetch(base() + '/storage/v1/object/media/' + path, { method: 'POST', headers: headers({ 'Content-Type': type || blob.type || 'application/octet-stream', 'x-upsert': 'false' }), body: blob });
+    const res = await net(base() + '/storage/v1/object/media/' + path, { method: 'POST', headers: headers({ 'Content-Type': type || blob.type || 'application/octet-stream', 'x-upsert': 'false' }), body: blob });
     await must(res); return B.publicUrl(path);
   };
 
-  B.createPage = async (id, editKey, obj) => must(await fetch(base() + '/rest/v1/rpc/create_page', { method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify({ p_id: id, p_key: editKey, p_data: obj }) }));
+  B.createPage = async (id, editKey, obj) => must(await net(base() + '/rest/v1/rpc/create_page', { method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify({ p_id: id, p_key: editKey, p_data: obj }) }));
   B.updatePage = async (id, editKey, obj) => {
-    const r = await must(await fetch(base() + '/rest/v1/rpc/update_page', { method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify({ p_id: id, p_key: editKey, p_data: obj }) }));
+    const r = await must(await net(base() + '/rest/v1/rpc/update_page', { method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify({ p_id: id, p_key: editKey, p_data: obj }) }));
     if ((await r.json()) !== true) throw new Error('This page can only be edited from the device that made it.');
   };
   B.getPage = async id => {
     if (!/^[A-Za-z0-9]{6,20}$/.test(id || '')) return null;
-    const r = await must(await fetch(base() + '/rest/v1/rpc/get_page', { method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify({ p_id: id }) }));
+    const r = await must(await net(base() + '/rest/v1/rpc/get_page', { method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify({ p_id: id }) }));
     return (await r.json()) || null;
   };
 

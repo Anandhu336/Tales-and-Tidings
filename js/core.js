@@ -106,22 +106,29 @@
   u.stkFile = e => { const c = codeOf(e || ''); return u.STK.has(c) ? c : u.STK.has(c + '_fe0f') ? c + '_fe0f' : ''; };
   u.stkSrc = e => { const f = u.stkFile(e); return f ? 'stickers/' + f + '.webp' : ''; };
   /* an <img> sticker for an emoji, or the plain emoji when there is no sticker (or it fails to load) */
-  /* Any emoji can be a sticker: ours first, then Google's animated version straight from Google (bigger, so only for
-     emoji we don't keep), and if Google has none either, the phone's own emoji, which the cute designs wiggle with CSS. */
-  const NOTO = c => 'https://fonts.gstatic.com/s/e/notoemoji/latest/' + c + '/512.webp';
+  /* Any emoji can be a sticker, tried in this order:
+     1. ours (animated, in /stickers)  2. Google's animated version  3. Google's still picture (the cute designs wiggle it)
+     4. the phone's own emoji. Google's pictures look the same on every phone, unlike phone emoji. */
+  const NOTO = (c, f) => 'https://fonts.gstatic.com/s/e/notoemoji/latest/' + c + '/' + f;
   u.stk = (e, cls) => {
     const src = u.stkSrc(e), c = (cls ? cls + ' ' : ''), code = codeOf(e || '');
     if (!src && !/^[0-9a-f]{4,6}(_[0-9a-f]{4,6})*$/.test(code)) return `<span class="${c}stk-t">${u.esc(e)}</span>`;
-    const url = src || NOTO(code), alt = src ? '' : ` data-alt="${NOTO(code + '_fe0f')}"`;
-    return `<img class="${c}stk" src="${url}"${alt} loading="lazy" alt="${u.esc(e)}" draggable="false" decoding="async" onerror="KS.util.stkFail(this)">`;
+    const next = src ? '' : ` data-alt="${[NOTO(code + '_fe0f', '512.webp'), NOTO(code, 'emoji.svg'), NOTO(code + '_fe0f', 'emoji.svg')].join('|')}"`; // some are spelled with _fe0f
+    return `<img class="${c}stk" src="${src || NOTO(code, '512.webp')}"${next} loading="lazy" alt="${u.esc(e)}" draggable="false" decoding="async" onerror="KS.util.stkFail(this)">`;
   };
   u.stkFail = img => {
-    if (img.dataset.alt) { const a = img.dataset.alt; img.removeAttribute('data-alt'); img.src = a; return; } // some need the _fe0f spelling
-    img.replaceWith(Object.assign(document.createElement('span'), { className: img.className.replace(/\bstk\b/, 'stk-t'), textContent: img.alt }));
+    const rest = (img.dataset.alt || '').split('|').filter(Boolean);
+    if (rest.length) { const n = rest.shift(); img.dataset.alt = rest.join('|'); if (/\.svg$/.test(n)) img.classList.add('still'); img.src = n; return; }
+    img.replaceWith(Object.assign(document.createElement('span'), { className: img.className.replace(/\bstk\b/, 'stk-t').replace(/\bstill\b/, ''), textContent: img.alt }));
   };
   u.preloadStk = e => { const src = u.stkSrc(e); if (src) new Image().src = src; };
   const LEAD = /^\s*((?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:\uFE0F|\u20E3|\p{Emoji_Modifier}|\u200D\p{Extended_Pictographic})*)\s*/u;
-  u.splitEmoji = t => { t = String(t || ''); const m = LEAD.exec(t); return m ? { e: m[1], l: t.slice(m[0].length).trim() } : { e: '', l: t.trim() }; };
+  const TRAIL = /\s*((?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:\uFE0F|\u20E3|\p{Emoji_Modifier}|\u200D\p{Extended_Pictographic})*)\s*$/u;
+  /* "🍕 Pizza" or "Pizza 🍕" -> { e: '🍕', l: 'Pizza' } */
+  u.splitEmoji = t => {
+    t = String(t || ''); let m = LEAD.exec(t); if (m) return { e: m[1], l: t.slice(m[0].length).trim() };
+    m = TRAIL.exec(t); return m ? { e: m[1], l: t.slice(0, m.index).trim() } : { e: '', l: t.trim() };
+  };
   u.STK_CREDIT = '<p class="ks-credit">Animated emoji: <a href="https://googlefonts.github.io/noto-emoji-animation/" target="_blank" rel="noopener">Google Noto</a> (CC BY 4.0)</p>';
 
   /* ---- small toast ---- */
@@ -137,7 +144,7 @@
     const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('Could not load ' + src)); document.head.append(s);
   }));
   /* a file can register a family of templates: 'wedding-hindu' lives in templates/wedding.js */
-  KS.V = '16'; // bump when templates change so phones fetch the new files instead of a cached copy
+  KS.V = '18'; // bump when templates change so phones fetch the new files instead of a cached copy
   KS.loadTemplate = async id => { if (!KS.templates[id]) await u.loadScript('templates/' + String(id).split('-')[0] + '.js?v=' + KS.V); if (!KS.templates[id]) throw new Error('Unknown template'); return KS.templates[id]; };
   u.font = href => { if (document.querySelector('link[data-ks-font="' + href + '"]')) return; const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.dataset.ksFont = href; document.head.append(l); };
 })();
