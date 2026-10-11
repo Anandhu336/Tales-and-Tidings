@@ -94,6 +94,17 @@ window.SUITES = async () => {
     H.eq((b.querySelector('img') || {}).alt, '✨', 'a choice with no emoji gets ✨');
   });
 
+  add('ask-date: the guide says your own first, yes and last-page lines', async () => {
+    const { w, d } = await H.render('ask-date', { firstSay: 'Hi Surya! Big question coming 🙈', yaySay: 'SHE SAID YES 🎉', endSay: 'See you soon 💖', steps: [], whenOn: false });
+    H.eq(d.querySelector('.k-bub').textContent, 'Hi Surya! Big question coming 🙈', 'first line');
+    d.querySelector('#aYes').click(); await H.sleep(800);
+    H.eq(d.querySelector('.k-bub').textContent, 'SHE SAID YES 🎉', 'line when they say yes');
+    const r2 = await H.render('ask-date', { endSay: 'See you soon 💖', whenOn: false, steps: [{ q: 'Pick', options: '🍕 Pizza' }] });
+    r2.d.querySelector('#aYes').click(); await H.sleep(700); r2.d.querySelector('#aPlan').click(); await H.sleep(600);
+    r2.d.querySelector('.a-step:not([hidden]) .a-opt').click(); await H.sleep(900);
+    H.eq(r2.d.querySelector('.k-bub').textContent, 'See you soon 💖', 'line on the last page');
+  });
+
   add('ask-sorry: forgive, then claim and unclaim a coupon', async () => {
     const { w, d } = await H.render('ask-sorry');
     d.querySelector('#aYes').click(); await H.sleep(700);
@@ -215,6 +226,7 @@ window.SUITES = async () => {
   add('builder: song list lays out properly', async () => {
     const { w, d } = await H.open('../index.html#/new/ask-date');
     const b = await H.until(() => [...d.querySelectorAll('button')].find(x => x.textContent.trim() === 'Our songs'), 10000, 'the music choices');
+    const sec = b.closest('details'); if (sec) sec.open = true; // the Music section starts folded, like for a person
     b.click(); await H.sleep(200);
     const rows = [...d.querySelectorAll('.tracks .track')];
     H.ok(rows.length >= 2, 'no songs listed');

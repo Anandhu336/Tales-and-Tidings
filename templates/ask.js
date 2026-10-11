@@ -157,7 +157,11 @@
       field('gateText', 'text', 'Words on the opening screen', { max: 70, show: d => d.gateOn !== false, placeholder: 'You have a little message 💌' })
     ] },
     { id: 'guide', title: 'Little guide', fields: [
-      ...C.guideFields(MODES[mode].guide, 'What your guide says each time they try No', 'One per line, in order. Leave empty for the built-in lines.'),
+      C.guideFields(MODES[mode].guide)[0],
+      field('firstSay', 'text', 'What your guide says first', { max: 110, placeholder: MODES[mode].first('Maya', 'Arjun'), help: 'Leave empty to use this line with your names.' }),
+      C.guideFields(MODES[mode].guide, 'What your guide says each time they try No', 'One per line, in order. Leave empty for the built-in lines.')[1],
+      field('yaySay', 'text', 'What your guide says when they say yes', { max: 90, placeholder: MODES[mode].yay }),
+      ...(mode === 'date' ? [field('endSay', 'text', 'What your guide says on the last page', { max: 90, placeholder: MODES[mode].end })] : []),
       field('photo', 'image', 'Your photo instead (optional)', { help: 'Shows your photo in a circle with the guide as a little badge.' })
     ] },
     { id: 'look', title: 'Colours and lettering', fields: C.lookFields(MODES[mode].theme, 'fredoka', 'fredoka') },
@@ -275,7 +279,8 @@
     const timers = [], T = (f, ms) => timers.push(setTimeout(f, ms)), cleanup = [];
 
     /* the guide lives at the top of whichever page is showing */
-    const G = C.guide(ex('q').guide || pet, ex('q').say || M.first(to, from), data.photo);
+    const firstLine = ex('q').say || (data.firstSay || '').trim() || M.first(to, from), yayLine = (data.yaySay || '').trim() || M.yay, endLine = (data.endSay || '').trim() || M.end;
+    const G = C.guide(ex('q').guide || pet, firstLine, data.photo);
     q.prepend(G.el);
     const say = (t, re) => G.say(t, re);
     M.faces.forEach((e, i) => T(() => u.preloadStk(e), 1200 + i * 80));
@@ -290,7 +295,7 @@
       const open = () => {
         if (gate.classList.contains('open')) return;
         ctx.start(); gate.classList.add('open'); fx.at(gate.querySelector('.env'), 120);
-        T(() => { gate.classList.add('gone'); document.body.style.overflow = prevOv; say(G.el.textContent.trim() || M.first(to, from)); }, 380);
+        T(() => { gate.classList.add('gone'); document.body.style.overflow = prevOv; say(firstLine); }, 380);
         T(() => gate.remove(), 1000);
       };
       gate.addEventListener('click', open); gate.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
@@ -343,16 +348,16 @@
     const pages = [q, ans, ...root.querySelectorAll('.a-step')], end = $('#aEnd'), picks = [];
     if (end) pages.push(end);
     pages.forEach((pg, i) => C.placePhotos(pg, EX[ids[i]]));
-    if (preview) pages.slice(1).forEach((pg, i) => pg.prepend(C.guide(ex(ids[i + 1]).guide || pet, ex(ids[i + 1]).say, data.photo).el)); // the builder shows every page at once
+    if (preview) pages.slice(1).forEach((pg, i) => pg.prepend(C.guide(ex(ids[i + 1]).guide || pet, ex(ids[i + 1]).say || (pg === ans ? yayLine : pg === end ? endLine : ''), data.photo).el)); // the builder shows every page at once
     let at = 0;
     const go = i => {
       if (preview) return;
       pages[at].hidden = true; at = i;
       const p = pages[at], my = ex(ids[at]); p.hidden = false; p.prepend(G.el); G.setPet(my.guide || pet); p.classList.remove('a-enter'); void p.offsetWidth; p.classList.add('a-enter'); scrollTo(0, 0);
       if (pages[at + 1]) pages[at + 1].querySelectorAll('img.stk').forEach(im => { new Image().src = im.src; }); // next page's stickers load while they choose
-      if (p === ans) { say(my.say || M.yay, M.happy); fx.rain(); }
+      if (p === ans) { say(my.say || yayLine, M.happy); fx.rain(); }
       else if (p === end) {
-        say(my.say || M.end, '🥳');
+        say(my.say || endLine, '🥳');
         const got = picks.filter(Boolean);
         $('#aPicks').innerHTML = got.map(o => `<span class="a-pick">${o.e ? stk(o.e) : ''}${esc(o.l || o.e)}</span>`).join('');
         const w = $('#aWa'); if (w) w.href = waHref(got.map(o => [o.e, o.l].filter(Boolean).join(' ')).join('\n'));

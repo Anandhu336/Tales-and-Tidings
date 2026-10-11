@@ -134,7 +134,7 @@
     if (d.scratchOn !== false) P.push({ k: 'scratch', id: 'scratch', l: 'Scratch card', bub: 'I wrote you a secret… 🤫' });
     if (d.hugOn !== false) P.push({ k: 'hug', id: 'hug', l: 'Hold to hug', bub: 'I really need one. Please? 🥺' });
     P.push({ k: 'final', id: 'final', l: 'The big question', bub: 'Last level! No pressure 😳' });
-    P.push({ k: 'end', id: 'end', l: 'Results page', bub: 'Yaaay! You did it! 🎉' });
+    P.push({ k: 'end', id: 'end', l: 'Results page', bub: (d.endBubble || '').trim() || 'Yaaay! You did it! 🎉' });
     return P;
   };
   const SCHEMA = [
@@ -142,7 +142,8 @@
       F('to', 'text', 'Their name', { max: 30 }),
       F('from', 'text', 'Your name', { max: 30 }),
       F('introTitle', 'text', 'Title on the first screen', { max: 50 }),
-      F('introBubble', 'text', 'What your guide says first', { max: 90, placeholder: 'Psst! I have a tiny quest for you 💌' })
+      F('introBubble', 'text', 'What your guide says first', { max: 90, placeholder: 'Psst! I have a tiny quest for you 💌' }),
+      F('endBubble', 'text', 'What your guide says on the results page', { max: 90, placeholder: 'Yaaay! You did it! 🎉' })
     ] },
     { id: 'guide', title: 'Little guide', fields: [
       { key: 'guide', type: 'sticker', label: 'Your little guide', options: C.GUIDES, default: '🐻', help: 'An animated buddy who talks to them and reacts to everything they do.' },
