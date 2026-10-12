@@ -242,6 +242,84 @@ window.SUITES = async () => {
     H.ok(/Supabase|offline/.test(msg), 'message was: ' + msg);
   });
 
+  /* ---------- editing by page, and from the preview ---------- */
+  add('builder by page: one card per page, words + guide + photos together, guide line in one place', async () => {
+    const { w, d } = await H.open('../index.html?preview=1');
+    const Tp = await w.KS.loadTemplate('ask-date'), host = d.createElement('div'); d.body.append(host);
+    const data = JSON.parse(JSON.stringify(Tp.sample));
+    const ed = w.KS.buildEditor(host, Tp.schema, data, () => {}, { emoji: true, layout: 'page', pagesOf: Tp.pagesOf, sayHint: Tp.sayHint });
+    const cards = [...host.querySelectorAll('.pcard')].map(c => c.querySelector('.pc-t').textContent);
+    H.ok(cards[0] === 'The question' && cards[1] === 'After they say yes', 'cards were: ' + cards.join(' | '));
+    H.ok(!/Page by page: guides/.test(host.textContent), 'the old "Page by page" list is still there');
+    const yes = host.querySelector('.pcard[data-page="yes"]');
+    H.ok(yes.querySelector('[data-bind="yayTitle"]'), 'the big happy line is not on the yes card');
+    const say = yes.querySelector('[data-bind="say:yes"]');
+    say.value = 'Woo hoo'; say.dispatchEvent(new w.Event('input', { bubbles: true }));
+    H.eq(data.yaySay, 'Woo hoo', 'the yes card writes the same guide line the old form did');
+    H.ok(![...host.querySelectorAll('[data-bind="yaySay"]')].length, 'the guide line shows twice');
+    // a photo on the question page
+    [...host.querySelector('.pcard[data-page="q"]').querySelectorAll('button')].find(b => /Add a photo/.test(b.textContent)).click();
+    H.ok(data.pages.some(x => x.at === 'q' && x.kind === 'photo'), 'no photo slot added to the question page');
+    // planning pages sit in one card, each with its own guide; the guide follows a page when it moves
+    const grp = host.querySelector('.pcard[data-key="grp:steps"]');
+    H.ok(grp && grp.querySelectorAll('.repitem[data-page] .pextras').length === data.steps.length, 'planning pages have no guide boxes');
+    data.pages.push({ at: 's1', guide: '🐼', say: '', photo: '', caption: '' });
+    grp.querySelector('.repitem [aria-label="Move down"]').click();
+    H.ok(data.pages.some(x => x.at === 's2' && x.guide === '🐼'), 'the panda did not move with its page');
+    ed.reveal({ page: 'end' });
+    H.ok(host.querySelector('.pcard[data-page="end"]').open, 'reveal did not open the last page');
+    host.remove();
+    return cards.length + ' cards';
+  });
+
+  add('builder: tap words in the preview, type, and the form and page follow', async () => {
+    const { w, d } = await H.open('../index.html#/new/ask-date');
+    w.localStorage.removeItem('ks.draft.ask-date'); w.localStorage.removeItem('ks.editor');
+    w.location.hash = '#/'; await H.sleep(100); w.location.hash = '#/new/ask-date';
+    const frame = await H.until(() => d.querySelector('.pvframe iframe'), 8000, 'the preview');
+    const pd = () => frame.contentDocument;
+    const h1 = await H.until(() => pd() && pd().querySelector('.ks-tap [data-ks-edit="question"]'), 8000, 'editable words in the preview');
+    h1.click();
+    const box = await H.until(() => pd().querySelector('.ks-inbox'), 3000, 'the typing box');
+    box.value = 'Pizza tonight?'; box.dispatchEvent(new frame.contentWindow.Event('input'));
+    const blur = b => b.dispatchEvent(new frame.contentWindow.FocusEvent('blur'));
+    const field = d.querySelector('[data-bind="question"]');
+    await H.until(() => field.value === 'Pizza tonight?', 2000, 'the form box to say "Pizza tonight?" (it says "' + field.value + '")');
+    blur(box);
+    await H.until(() => { const n = pd().querySelector('[data-ks-edit="question"]'); return n && n.textContent === 'Pizza tonight?'; }, 3000, 'the preview to show the new words');
+    // what the guide says can be typed on the page too
+    const bub = await H.until(() => pd().querySelector('[data-ks-page="yes"] .k-bub>span[data-ks-edit]'), 3000, 'the guide line on the yes page');
+    bub.click(); const b2 = await H.until(() => pd().querySelector('.ks-inbox'), 3000, 'the typing box');
+    b2.value = 'You said yes!'; b2.dispatchEvent(new frame.contentWindow.Event('input')); blur(b2);
+    await H.until(() => d.querySelector('[data-bind="say:yes"]').value === 'You said yes!', 2000, 'the guide box on the yes card');
+    // tap a page (not its words) to open its card
+    await H.sleep(400);
+    const yesPage = pd().querySelector('[data-ks-page="yes"]');
+    yesPage.dispatchEvent(new frame.contentWindow.MouseEvent('click', { bubbles: true }));
+    await H.until(() => d.querySelector('.pcard[data-page="yes"]').open, 2000, 'the yes card to open');
+    // settings: arrange by topic brings back the classic form
+    d.querySelector('[aria-label="Editor settings"]').click();
+    [...d.querySelectorAll('.edset .seg button')].find(b => b.textContent === 'By topic').click();
+    H.ok([...d.querySelectorAll('.sec>summary')].some(x => /Page by page: guides/.test(x.textContent)), 'by topic did not bring the classic sections back');
+    H.eq(JSON.parse(w.localStorage.getItem('ks.editor')).layout, 'topic', 'the setting was not remembered');
+    w.localStorage.removeItem('ks.editor'); w.localStorage.removeItem('ks.draft.ask-date');
+    w.location.hash = '#/'; await H.sleep(200);
+  }, 30000);
+
+  add('builder: designs without marks still let you tap their words', async () => {
+    const { w, d } = await H.open('../index.html#/new/birthday');
+    w.localStorage.removeItem('ks.draft.birthday');
+    const frame = await H.until(() => d.querySelector('.pvframe iframe'), 8000, 'the preview');
+    const n = await H.until(() => frame.contentDocument && frame.contentDocument.querySelector('[data-ks-edit]'), 8000, 'words matched to the form');
+    const path = n.dataset.ksEdit;
+    n.click();
+    const box = await H.until(() => frame.contentDocument.querySelector('.ks-inbox'), 3000, 'the typing box');
+    box.value = 'Changed here'; box.dispatchEvent(new frame.contentWindow.Event('input')); box.dispatchEvent(new frame.contentWindow.FocusEvent('blur'));
+    await H.until(() => d.querySelector('[data-bind="' + path + '"]').value === 'Changed here', 2000, 'the form box for ' + path);
+    w.localStorage.removeItem('ks.draft.birthday'); w.location.hash = '#/'; await H.sleep(200);
+    return path;
+  }, 30000);
+
   /* ---------- accounts (a pretend Supabase, so nothing real is touched) ---------- */
   const fakeSupabase = (w, pages, drafts) => {
     const calls = [], saved = {};

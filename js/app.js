@@ -41,12 +41,93 @@
 
   /* ---------------- live preview (inside the builder) ---------------- */
   function previewMode() {
+    let last = null; // the latest render message: data, and which builder tools are on
     addEventListener('message', async e => {
-      const m = e.data; if (e.source !== parent || !m || m.type !== 'ks-render') return;
+      const m = e.data; if (e.source !== parent || !m) return;
+      if (m.type === 'ks-show') return showPage(m.page);
+      if (m.type !== 'ks-render') return;
       const y = scrollY;
+      finishEdit(true);
       try { await mountPage({ t: m.t, d: m.d, m: m.m }, { preview: !m.live }); if (!m.live) scrollTo(0, y); } catch (_) {}
+      last = m.live ? null : m;
+      markTools();
     });
     parent.postMessage({ type: 'ks-ready' }, '*');
+
+    /* builder tools inside the preview: tap a page to find its settings, tap words to type new ones */
+    document.head.append(el('style', {}, `
+      .ks-jump [data-ks-page],.ks-jump [data-ks-say]{cursor:pointer}
+      .ks-jump [data-ks-page]:hover{outline:2px dashed rgba(180,71,95,.45);outline-offset:-4px;border-radius:14px}
+      .ks-tap [data-ks-edit]{cursor:text;border-radius:6px;transition:box-shadow .15s}
+      .ks-tap [data-ks-edit]:hover{box-shadow:0 0 0 2px rgba(180,71,95,.6)}
+      [data-ks-edit].ks-hide{visibility:hidden}
+      .ks-flash{animation:ksflash 1.4s ease}
+      @keyframes ksflash{30%{box-shadow:inset 0 0 0 4px rgba(180,71,95,.55)}}
+      .ks-inbox{position:absolute;z-index:9999;box-sizing:border-box;margin:0;border:0;outline:2px solid #b4475f;outline-offset:2px;border-radius:8px;background:rgba(255,255,255,.96);
+        resize:none;overflow:hidden;padding:2px 4px;box-shadow:0 10px 30px rgba(0,0,0,.2);min-width:140px}
+      .ks-inbox::placeholder{color:#999}`));
+    const get = (o, path) => path.split('.').reduce((v, k) => (v == null ? v : v[k]), o);
+    const norm = t => String(t || '').replace(/\s+/g, ' ').trim();
+    function markTools() {
+      const root = stage(), t = last && last.tools;
+      root.classList.toggle('ks-jump', !!(t && t.jump)); root.classList.toggle('ks-tap', !!(t && (t.inline || t.jump)));
+      if (!t || !(t.inline || t.jump)) return;
+      // what the guide says, on each page
+      root.querySelectorAll('.k-bub>span').forEach(sp => { const h = sp.closest('[data-ks-say],[data-ks-page]'); if (h) sp.dataset.ksEdit = 'say:' + (h.dataset.ksSay || h.dataset.ksPage); });
+      // designs without marks: find words on the page that match a text box in the form
+      if (![...root.querySelectorAll('[data-ks-edit]')].some(n => !n.closest('.k-bub'))) {
+        const leaves = [...root.querySelectorAll('h1,h2,h3,h4,h5,p,span,b,strong,em,i,small,blockquote,figcaption,li,div,a,button,time,label,td')]
+          .filter(n => n.childElementCount === [...n.children].filter(c => c.tagName === 'BR').length && norm(n.textContent));
+        (t.fields || []).forEach(([path, v]) => {
+          const want = norm(v); if (want.length < 2) return;
+          leaves.forEach(n => { if (!n.dataset.ksEdit && norm(n.textContent) === want) { n.dataset.ksEdit = path; if (/\n/.test(v)) n.dataset.ksMulti = ''; } });
+        });
+      }
+    }
+    function showPage(id) {
+      const n = stage().querySelector('[data-ks-page="' + CSS.escape(id) + '"]'); if (!n) return;
+      n.scrollIntoView({ behavior: u.RM ? 'auto' : 'smooth', block: 'start' });
+      n.classList.remove('ks-flash'); void n.offsetWidth; n.classList.add('ks-flash');
+    }
+
+    let cur = null; // { node, box, path }
+    function startEdit(n) {
+      finishEdit();
+      const path = n.dataset.ksEdit, multi = n.hasAttribute('data-ks-multi');
+      const raw = path.startsWith('say:') ? ((last.tools.say || {})[path.slice(4)] || '') : get(last.d, path);
+      const r = n.getBoundingClientRect(), cs = getComputedStyle(n);
+      const box = el('textarea', { class: 'ks-inbox', rows: 1, 'aria-label': 'Type here', placeholder: norm(n.innerText) || 'Type here' });
+      box.value = typeof raw === 'string' ? raw : '';
+      ['font', 'letterSpacing', 'textAlign', 'textTransform', 'color', 'lineHeight', 'wordSpacing'].forEach(k => { box.style[k] = cs[k]; });
+      if (/rgba?\(255, 255, 255/.test(cs.color)) box.style.color = '#2b2320'; // white words would vanish on the white box
+      const w = Math.max(r.width, 160);
+      Object.assign(box.style, { left: Math.max(4, r.left + scrollX - (w - r.width) / 2) + 'px', top: r.top + scrollY + 'px', width: Math.min(w, innerWidth - 8) + 'px' });
+      document.body.append(box);
+      const grow = () => { box.style.height = 'auto'; box.style.height = Math.max(r.height, box.scrollHeight) + 'px'; };
+      grow(); n.classList.add('ks-hide');
+      cur = { node: n, box, path, multi };
+      box.addEventListener('input', () => { if (!multi && /\n/.test(box.value)) box.value = box.value.replace(/\n+/g, ' '); grow(); parent.postMessage({ type: 'ks-edit', path, value: box.value }, '*'); });
+      box.addEventListener('keydown', e => { if (e.key === 'Escape' || (e.key === 'Enter' && !multi)) { e.preventDefault(); finishEdit(); } });
+      box.addEventListener('blur', () => finishEdit());
+      box.focus(); box.setSelectionRange(box.value.length, box.value.length);
+      parent.postMessage({ type: 'ks-edit-start', path }, '*');
+    }
+    function finishEdit(quiet) {
+      if (!cur) return; const c = cur; cur = null;
+      c.box.remove(); c.node.classList.remove('ks-hide');
+      if (!quiet) parent.postMessage({ type: 'ks-edit-done', path: c.path }, '*');
+    }
+    stage().addEventListener('click', e => {
+      const t = last && last.tools; if (!t) return;
+      const w = (t.inline || t.jump) && e.target.closest('[data-ks-edit]');
+      if (w) {
+        e.preventDefault(); e.stopPropagation();
+        if (t.inline) startEdit(w); else parent.postMessage({ type: 'ks-pick', path: w.dataset.ksEdit }, '*');
+        return;
+      }
+      const pg = t.jump && e.target.closest('[data-ks-page],[data-ks-say]');
+      if (pg) parent.postMessage({ type: 'ks-pick', page: pg.dataset.ksPage || pg.dataset.ksSay }, '*');
+    }, true);
   }
 
   /* ---------------- builder ---------------- */
@@ -406,6 +487,11 @@
   }
 
   /* editing: a published page { id, key, page }. draft: a draft saved in the account { id, data } */
+  /* editor settings, per device */
+  const EDP = 'ks.editor';
+  function edPrefs() { let p = {}; try { p = JSON.parse(localStorage.getItem(EDP) || '{}') || {}; } catch (_) {} return Object.assign({ layout: 'page', jump: true, inline: true }, p); }
+  function saveEdPrefs(p) { try { localStorage.setItem(EDP, JSON.stringify(p)); } catch (_) {} }
+
   async function editor(tplId, editing, draft) {
     await loadAll();
     const T = KS.templates[tplId]; if (!T) return (location.hash = '#/');
@@ -427,10 +513,32 @@
     if (T.migrate) T.migrate(data); // lets a template upgrade fields saved by an older version
 
     /* preview iframe */
-    let ready = false, live = false, timer = 0, saveT = 0;
+    let ready = false, live = false, timer = 0, saveT = 0, typing = false, ed = null;
+    const prefs = edPrefs();
     const iframe = el('iframe', { src: location.pathname + '?preview=1', title: 'Preview' });
-    const send = () => { if (ready && !live) iframe.contentWindow.postMessage({ type: 'ks-render', t: T.id, d: data, m: music, live: false }, '*'); };
-    const onMsg = e => { if (e.source === iframe.contentWindow && e.data && e.data.type === 'ks-ready') { ready = true; send(); } };
+    // the text boxes in the form, so the preview can match words on designs that do not mark them
+    const textPaths = () => T.schema.flatMap(sec => sec.fields.flatMap(f => {
+      const isT = x => x.type === 'text' || x.type === 'textarea';
+      if (isT(f)) return typeof data[f.key] === 'string' ? [[f.key, data[f.key]]] : [];
+      if (f.type === 'repeater' && Array.isArray(data[f.key])) return data[f.key].flatMap((it, i) => f.fields.filter(isT).filter(sf => typeof it[sf.key] === 'string').map(sf => [f.key + '.' + i + '.' + sf.key, it[sf.key]]));
+      return [];
+    }));
+    const send = () => {
+      if (!ready || live || typing) return; // never redraw under someone typing in the preview
+      iframe.contentWindow.postMessage({ type: 'ks-render', t: T.id, d: data, m: music, live: false,
+        tools: { jump: prefs.jump, inline: prefs.inline, say: ed ? ed.sayMap() : {}, fields: prefs.jump || prefs.inline ? textPaths() : [] } }, '*');
+    };
+    const narrow = () => matchMedia('(max-width: 900px)').matches;
+    const showTab = t => { root.dataset.tab = t; [...tabs.children].forEach((b, i) => b.setAttribute('aria-selected', String((i === 0) === (t === 'edit')))); };
+    const onMsg = e => {
+      if (e.source !== iframe.contentWindow || !e.data) return;
+      const m = e.data;
+      if (m.type === 'ks-ready') { ready = true; send(); }
+      else if (m.type === 'ks-pick') { if (narrow()) showTab('edit'); ed.reveal(m.page ? { page: m.page } : { path: m.path }); }
+      else if (m.type === 'ks-edit-start') { typing = true; if (!narrow()) ed.reveal({ path: m.path }); }
+      else if (m.type === 'ks-edit') ed.setValue(m.path, m.value);
+      else if (m.type === 'ks-edit-done') { typing = false; send(); }
+    };
     addEventListener('message', onMsg);
     /* drafts: saved a moment after each change, to the account when signed in, otherwise to this browser */
     const status = el('small', {}, editing ? 'editing a published page' : cloud ? (draft ? 'draft saved to your account' : 'draft saves to your account') : 'draft saved on this device');
@@ -473,12 +581,32 @@
       root.dataset.tab = t; [...tabs.children].forEach(b => b.setAttribute('aria-selected', String(b === e.currentTarget)));
     } }, t === 'edit' ? 'Edit' : 'Preview')));
     const pubBtn = el('button', { type: 'button', class: 'btn primary', onclick: () => publish() }, editing ? 'Save changes' : 'Publish');
+    /* how the editor works: form arranged by page or by topic, tap-to-find, type in the preview. Remembered on this device. */
+    const setPanel = el('div', { class: 'edset', hidden: true, role: 'dialog', 'aria-label': 'Editor settings' });
+    const drawSettings = () => {
+      const opt = (k, title, help) => { const c = el('input', { type: 'checkbox' }); c.checked = !!prefs[k];
+        c.addEventListener('change', () => { prefs[k] = c.checked; saveEdPrefs(prefs); send(); });
+        return el('label', { class: 'es-row' }, c, el('span', {}, el('b', {}, title), el('small', {}, help))); };
+      setPanel.textContent = '';
+      setPanel.append(el('h3', {}, 'How the editor works'),
+        el('div', { class: 'es-blk' }, el('b', {}, 'Arrange the form'),
+          T.pagesOf ? el('div', { class: 'seg' }, [['page', 'By page'], ['topic', 'By topic']].map(([v, l]) => el('button', { type: 'button', 'aria-pressed': String(prefs.layout === v),
+            onclick: () => { prefs.layout = v; saveEdPrefs(prefs); buildForm(); drawSettings(); } }, l))) : null,
+          el('small', {}, T.pagesOf ? (prefs.layout === 'page' ? 'One card per page your visitor sees, with its words, guide and photos together.' : 'Grouped by kind of setting, the classic way.')
+            : 'This design is one long page, so its settings are grouped by topic.')),
+        opt('jump', 'Tap the preview to find a setting', 'Tap a page or any words in the preview and the form opens right there.'),
+        opt('inline', 'Type straight into the preview', 'Tap any words in the preview and type over them. The form updates too.'),
+        el('div', { class: 'dact' }, el('button', { type: 'button', class: 'btn', onclick: () => { setPanel.hidden = true; } }, 'Done')));
+    };
+    const setBtn = el('button', { type: 'button', class: 'btn ghost', 'aria-label': 'Editor settings', 'aria-expanded': 'false', onclick: () => {
+      setPanel.hidden = !setPanel.hidden; setBtn.setAttribute('aria-expanded', String(!setPanel.hidden)); if (!setPanel.hidden) drawSettings();
+    } }, '⚙', el('span', { class: 'hide-s' }, ' Settings'));
     const root = el('div', { class: 'ed', 'data-tab': 'edit' },
       el('div', { class: 'ed-top' },
         el('button', { type: 'button', class: 'btn ghost', onclick: () => {
           if (editing ? confirm('Leave the editor? Changes you have not saved will be lost.') : cloud || confirm('Leave the editor? Your work is saved as a draft on this device (photos and songs will need adding again).')) location.hash = B.signedIn() ? '#/account' : '#/';
         } }, '← Back'),
-        el('div', { class: 'ttl' }, T.name, status), tabs, pubBtn),
+        el('div', { class: 'ttl' }, T.name, status), tabs, el('div', { class: 'edset-wrap' }, setBtn, setPanel), pubBtn),
       el('div', { class: 'ed-main' },
         el('div', { class: 'ed-form' },
           restored || draft ? el('div', { class: 'draftbar' }, el('span', {}, draft ? 'Carrying on with your draft.' : 'Restored your last draft.'), el('button', { class: 'link', type: 'button', onclick: () => {
@@ -491,7 +619,12 @@
         el('div', { class: 'ed-pv' }, el('div', { class: 'pvbar' }, dev, liveBtn, el('button', { class: 'btn ghost', type: 'button', onclick: () => { ready && (live = false, liveBtn.textContent = '▶ Play as a visitor', send()); } }, '↻ Refresh')), el('div', { class: 'pvstage' }, frame))));
     app().textContent = ''; app().append(root);
 
-    KS.buildEditor(formHost, T.schema, data, changed, { emoji: !!T.emoji });
+    function buildForm() {
+      ed = KS.buildEditor(formHost, T.schema, data, changed, { emoji: !!T.emoji, layout: T.pagesOf ? prefs.layout : 'topic', pagesOf: T.pagesOf || null, sayHint: T.sayHint || null,
+        onPage: id => { if (prefs.jump && ready && !live) iframe.contentWindow.postMessage({ type: 'ks-show', page: id }, '*'); } });
+      send();
+    }
+    buildForm();
     const me = KS.buildMusicEditor(musicHost, music, changed);
     teardown = () => { removeEventListener('message', onMsg); removeEventListener('beforeunload', onLeave); clearTimeout(timer); saveNow(); me.stop(); };
     if (fromDevice) { dirty = true; saveNow(); } // a draft from before signing in moves into the account

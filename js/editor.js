@@ -2,7 +2,11 @@
    Field types: text, textarea, date, time, choice, color, toggle, image, place, repeater, reset, sticker.
    choice: `resets: [keys]` clears those keys when picked; `default` is the value shown when nothing is picked; options may carry `f` (a font to show the label in).
    sticker: a grid of animated stickers to pick one from (`options`: list of emoji; `none`: label for an empty "use the default" choice).
-   choice `options` may be a function(data) so the list follows the rest of the form.  color: `default` may be a function(data).  reset: button that clears `keys`. */
+   choice `options` may be a function(data) so the list follows the rest of the form.  color: `default` may be a function(data).  reset: button that clears `keys`.
+   Arranging by page (opts.layout = 'page', opts.pagesOf(data) -> [[id, label]]): a field (or a whole section) says which page it is on with
+   `page: 'id'` or `page: data => 'id'`. A repeater whose items are pages has `itemPage(data, i) -> id`, `groupTitle` and `after` (the page it follows);
+   other fields join its card with `page: <its key>`. `sayFor: 'id'` marks the field that holds what the guide says on that page.
+   A section with `extras: true` is the old "Page by page" list: in the page layout each page card has its own guide and photos instead. */
 (function () {
   'use strict';
   const KS = window.KS, u = KS.util, el = u.el;
@@ -42,9 +46,33 @@
   }
 
   KS.buildEditor = function (host, schema, data, onChange, opts) {
-    const emoji = !!(opts && opts.emoji);
-    const showers = []; // functions that re-check "show if" conditions
-    const changed = () => { showers.forEach(fn => fn()); onChange(data); };
+    opts = opts || {};
+    const emoji = !!opts.emoji;
+    const byPage = opts.layout === 'page' && typeof opts.pagesOf === 'function';
+    let showers = []; // functions that re-check "show if" conditions
+    const paths = new WeakMap([[data, '']]), setters = new Map(); // where each value lives ('steps.0.q'), and how to update its box
+    const bindPath = (obj, key) => { const p = paths.get(obj); return p == null ? null : (p ? p + '.' : '') + key; };
+    const sayKeys = {}; schema.forEach(sec => sec.fields.forEach(f => { if (f.sayFor) sayKeys[f.sayFor] = f.key; }));
+    let shapeNow = '', waiting = false;
+    const changed = () => { showers.forEach(fn => fn()); onChange(data); if (byPage) reshape(); };
+
+    /* ---- per-page guide, words and photos (kept in data.pages, the same list the "Page by page" section edits) ---- */
+    const extrasOf = id => (Array.isArray(data.pages) ? data.pages : []).filter(x => x && x.at === id);
+    const isPhoto = x => x.kind === 'photo' || !!x.photo;
+    const extraOf = id => { const r = { guide: '', say: '' }; extrasOf(id).forEach(x => { if (!r.guide && x.guide) r.guide = x.guide; if (!r.say && (x.say || '').trim()) r.say = x.say; }); return r; };
+    function setExtra(id, k, v) {
+      if (!Array.isArray(data.pages)) data.pages = [];
+      const all = extrasOf(id); let main = all.find(x => !isPhoto(x));
+      all.forEach(x => { if (x !== main) x[k] = ''; }); // one place decides, so old entries cannot win over the new value
+      if (!main) { if (!v) return; main = { at: id, guide: '', say: '', photo: '', caption: '' }; data.pages.push(main); }
+      main[k] = v;
+      if (!main.guide && !(main.say || '').trim() && !main.caption) data.pages.splice(data.pages.indexOf(main), 1);
+    }
+    const getSay = id => extraOf(id).say || (sayKeys[id] ? data[sayKeys[id]] || '' : '');
+    function setSay(id, v) {
+      if (sayKeys[id]) { data[sayKeys[id]] = v; setExtra(id, 'say', ''); const st = setters.get(sayKeys[id]); if (st) st(v, true); }
+      else setExtra(id, 'say', v);
+    }
 
     function control(f, obj) {
       f._id = f._id || uid();
@@ -53,6 +81,7 @@
         case 'text': case 'date': case 'time': {
           const i = el('input', { type: f.type, id: f._id, maxlength: f.type === 'text' ? (f.max || 120) : null, placeholder: f.placeholder || '', autocomplete: 'off', value: obj[key] || '' });
           i.addEventListener('input', () => { obj[key] = i.value; changed(); });
+          bind(f, obj, i, v => { i.value = v; });
           return fieldBlock(f, emoji && f.type === 'text' && f.emoji !== false ? withStickers(f, i) : i);
         }
         case 'textarea': {
@@ -60,6 +89,7 @@
           const cnt = f.lines ? el('span', { class: 'count' }) : null;
           const upd = () => { if (cnt) { const n = t.value.split('\n').filter(s => s.trim()).length; cnt.textContent = n + ' / ' + f.lines + ' lines'; cnt.classList.toggle('over', n > f.lines); } };
           t.addEventListener('input', () => { obj[key] = t.value; upd(); changed(); }); upd();
+          bind(f, obj, t, v => { t.value = v; upd(); });
           return fieldBlock(f, [emoji && f.emoji !== false ? withStickers(f, t) : t, cnt ? el('div', { class: 'counter' }, cnt) : null]);
         }
         case 'choice': {
@@ -112,6 +142,13 @@
       }
     }
 
+    /* remember where a box's value lives, so the preview can type into it (setValue) and find it (reveal) */
+    function bind(f, obj, box, set) {
+      const p = f.bindAs || bindPath(obj, f.key); if (p == null) return;
+      box.dataset.bind = p;
+      setters.set(p, (v, quiet) => { set(v); if (!quiet) box.dispatchEvent(new Event('input', { bubbles: true })); });
+    }
+
     function imageControl(f, obj) {
       const key = f.key, thumb = el('div', { class: 'imgthumb' }), status = el('span', { class: 'imgstat' });
       const input = el('input', { type: 'file', accept: 'image/*', hidden: true });
@@ -136,22 +173,33 @@
       f._id = f._id || uid();
       if (!Array.isArray(obj[f.key])) obj[f.key] = [];
       const list = el('div', { class: 'replist' });
+      const idsNow = () => obj[f.key].map((it, j) => [it, f.itemPage ? f.itemPage(data, j) || '' : '']);
+      const follow = before => { // a planning page's own guide and photos move with it
+        if (!f.itemPage || !Array.isArray(data.pages)) return;
+        const now = new Map(idsNow()), m = new Map();
+        before.forEach(([it, id]) => { if (id) m.set(id, now.has(it) ? now.get(it) : ''); });
+        for (let k = data.pages.length - 1; k >= 0; k--) { const x = data.pages[k]; if (x && m.has(x.at)) { if (m.get(x.at)) x.at = m.get(x.at); else data.pages.splice(k, 1); } }
+      };
       const add = el('button', { type: 'button', class: 'btn add', onclick: () => {
         if (obj[f.key].length >= (f.max || 20)) return u.toast('That is the most you can add here');
         obj[f.key].push(u.clone(f.blank || {})); draw(obj[f.key].length - 1); changed();
       } }, '+ ' + (f.addLabel || 'Add'));
       function draw(openIdx) {
         const arr = obj[f.key]; list.textContent = '';
+        const base = bindPath(obj, f.key);
         arr.forEach((item, i) => {
+          if (base != null) paths.set(item, base + '.' + i);
           const t = (f.title ? f.title(item, i) : '') || (f.itemLabel || 'Item') + ' ' + (i + 1);
           const btn = (txt, label, fn, dis) => el('button', { type: 'button', class: 'mini', 'aria-label': label, disabled: dis, onclick: e => { e.preventDefault(); e.stopPropagation(); fn(); } }, txt);
           const sum = el('summary', {}, el('span', { class: 'rt' }, t),
             el('span', { class: 'rc' },
-              btn('↑', 'Move up', () => { arr.splice(i - 1, 0, arr.splice(i, 1)[0]); draw(i - 1); changed(); }, i === 0),
-              btn('↓', 'Move down', () => { arr.splice(i + 1, 0, arr.splice(i, 1)[0]); draw(i + 1); changed(); }, i === arr.length - 1),
-              btn('✕', 'Remove', () => { arr.splice(i, 1); draw(); changed(); })));
-          const body = el('div', { class: 'repbody' }, f.fields.map(sf => sub(sf, item)));
-          list.append(el('details', { class: 'repitem', open: (openIdx === i || (arr.length === 1 && openIdx == null)) ? true : null }, sum, body));
+              btn('↑', 'Move up', () => { const b = idsNow(); arr.splice(i - 1, 0, arr.splice(i, 1)[0]); follow(b); draw(i - 1); changed(); }, i === 0),
+              btn('↓', 'Move down', () => { const b = idsNow(); arr.splice(i + 1, 0, arr.splice(i, 1)[0]); follow(b); draw(i + 1); changed(); }, i === arr.length - 1),
+              btn('✕', 'Remove', () => { const b = idsNow(); arr.splice(i, 1); follow(b); draw(); changed(); })));
+          const pid = f.itemPage ? f.itemPage(data, i) || '' : '';
+          const body = el('div', { class: 'repbody' }, f.fields.map(sf => sub(sf, item)), byPage && pid ? pageExtras(pid) : null);
+          list.append(el('details', { class: 'repitem', 'data-page': pid || null, 'data-key': base != null ? 'item:' + base + '.' + i : null,
+            open: (openIdx === i || (arr.length === 1 && openIdx == null) || keepOpen.has('item:' + base + '.' + i)) ? true : null }, sum, body));
         });
         add.disabled = arr.length >= (f.max || 20);
         if (f.max) add.textContent = '+ ' + (f.addLabel || 'Add') + '  (' + arr.length + '/' + f.max + ')';
@@ -176,17 +224,124 @@
       return node;
     }
 
-    host.textContent = '';
-    schema.forEach(sec => {
-      const body = el('div', { class: 'secbody' });
-      sec.fields.forEach(f => {
-        const node = control(f, data);
-        if (f.type === 'repeater' && f.title) node._title = f.title;
-        body.append(withVisibility(f, data, node));
-      });
-      host.append(el('details', { class: 'sec', open: sec.open ? true : null }, el('summary', {}, sec.title), body));
-    });
-    return { refresh: () => showers.forEach(fn => fn()) };
+    /* a page card's own guide, what the guide says there, and its photos */
+    function pageExtras(id) {
+      const box = el('div', { class: 'pextras' });
+      const draw = () => {
+        box.textContent = '';
+        const v = { get guide() { return extraOf(id).guide; }, set guide(x) { setExtra(id, 'guide', x); }, get say() { return getSay(id); }, set say(x) { setSay(id, x); } };
+        const guides = (KS.cute && KS.cute.GUIDES) || null;
+        box.append(el('p', { class: 'px-h' }, 'Guide and photos on this page'));
+        if (guides) box.append(control({ key: 'guide', type: 'sticker', label: 'Guide on this page', options: guides, none: 'Same as main' }, v));
+        box.append(control({ key: 'say', type: 'text', label: 'What the guide says when this page opens', max: 110, bindAs: 'say:' + id, placeholder: opts.sayHint ? opts.sayHint(id, data) || '' : '' }, v));
+        extrasOf(id).filter(isPhoto).forEach(x => box.append(el('div', { class: 'px-photo' },
+          control({ key: 'photo', type: 'image', label: 'Photo' }, x),
+          control({ key: 'caption', type: 'text', label: 'Caption (optional)', max: 60 }, x),
+          el('button', { type: 'button', class: 'link danger', onclick: () => { data.pages.splice(data.pages.indexOf(x), 1); draw(); changed(); } }, 'Remove this photo'))));
+        box.append(el('button', { type: 'button', class: 'btn add', onclick: () => {
+          if (!Array.isArray(data.pages)) data.pages = [];
+          data.pages.push({ at: id, kind: 'photo', guide: '', say: '', photo: '', caption: '' }); draw(); changed();
+        } }, '+ Add a photo to this page'));
+      };
+      draw(); return box;
+    }
+
+    const pageOf = (f, sec) => { const p = f.page !== undefined ? f.page : sec.page; return (typeof p === 'function' ? p(data) : p) || ''; };
+    const shape = () => opts.pagesOf(data).map(p => p[0]).join(',') + '|' + schema.map(sec => sec.fields.map(f => pageOf(f, sec)).join(',')).join(';')
+      + '|' + schema.flatMap(sec => sec.fields.filter(f => f.itemPage).map(f => (data[f.key] || []).map((_, i) => f.itemPage(data, i)).join(','))).join(';');
+    /* the set of pages changed (a planning page was added, a game switched off): rebuild, but never under someone's typing finger */
+    function reshape() {
+      if (shape() === shapeNow) return;
+      const a = document.activeElement;
+      if (a && host.contains(a) && (a.tagName === 'TEXTAREA' || (a.tagName === 'INPUT' && /^(text|date|time)$/.test(a.type)))) {
+        if (!waiting) { waiting = true; a.addEventListener('blur', () => { waiting = false; setTimeout(() => { if (shape() !== shapeNow) build(); }, 0); }, { once: true }); }
+        return;
+      }
+      build();
+    }
+
+    let keepOpen = new Set();
+    const section = (key, title, kids, open) => el('details', { class: 'sec', 'data-key': key, open: open ? true : null }, el('summary', {}, title), el('div', { class: 'secbody' }, kids));
+    const fieldNode = f => { const node = control(f, data); if (f.type === 'repeater' && f.title) node._title = f.title; return withVisibility(f, data, node); };
+
+    function build() {
+      const first = !host.childElementCount, a = document.activeElement, focus = a && host.contains(a) ? a.dataset.bind : '';
+      keepOpen = new Set([...host.querySelectorAll('details[open][data-key]')].map(x => x.dataset.key));
+      const isOpen = (key, dflt) => (first ? dflt : keepOpen.has(key));
+      showers = []; setters.clear(); host.textContent = '';
+      if (!byPage) {
+        schema.forEach(sec => host.append(section('sec:' + sec.id, sec.title, sec.fields.map(fieldNode), isOpen('sec:' + sec.id, sec.open))));
+      } else {
+        const pages = opts.pagesOf(data), per = {}, groups = [], basics = [];
+        schema.forEach(sec => {
+          if (sec.extras) return;
+          const loose = [];
+          sec.fields.forEach(f => {
+            if (f.sayFor) return; // lives in its page card as "What the guide says"
+            const p = pageOf(f, sec);
+            if (p) (per[p] = per[p] || []).push(f); else loose.push(f);
+            if (f.type === 'repeater' && f.itemPage) groups.push(f);
+          });
+          if (loose.length) basics.push([sec, loose]);
+        });
+        host.append(el('p', { class: 'ed-h' }, 'For the whole page'));
+        basics.forEach(([sec, fs]) => host.append(section('sec:' + sec.id, sec.basics || sec.title, fs.map(fieldNode), isOpen('sec:' + sec.id, sec.open))));
+        host.append(el('p', { class: 'ed-h' }, 'Page by page', el('small', {}, 'In the order your visitor sees them. Tap a page in the preview to jump to it.')));
+        let n = 0; const done = new Set();
+        const label = id => { const x = opts.pagesOf(data).find(p => p[0] === id); return x ? x[1] : ''; };
+        const card = (key, num, title, fs, id) => {
+          const t = el('span', { class: 'pc-t' }, title()); showers.push(() => { t.textContent = title(); });
+          return el('details', { class: 'sec pcard', 'data-key': key, 'data-page': id || null, open: isOpen(key, false) ? true : null },
+            el('summary', {}, num ? el('span', { class: 'pc-n' }, num) : null, t), el('div', { class: 'secbody' }, fs.map(fieldNode), id ? pageExtras(id) : null));
+        };
+        const groupCard = g => { // one card holds all of a repeater's pages, numbered as a range
+          if (done.has(g.key)) return; done.add(g.key);
+          const c = (data[g.key] || []).map((_, i) => g.itemPage(data, i)).filter(Boolean).length;
+          host.append(card('grp:' + g.key, c > 1 ? (n + 1) + '–' + (n + c) : c ? String(n + 1) : '', () => g.groupTitle || g.label || g.key, per[g.key] || [], ''));
+          n += c;
+        };
+        pages.forEach(([id]) => {
+          const g = groups.find(x => (data[x.key] || []).some((_, i) => x.itemPage(data, i) === id));
+          if (g) return groupCard(g);
+          host.append(card('pg:' + id, String(++n), () => label(id), per[id] || [], id));
+          groups.forEach(x => { if (x.after === id) groupCard(x); });
+        });
+        groups.forEach(groupCard);
+        shapeNow = shape();
+      }
+      const back = focus && host.querySelector('[data-bind="' + CSS.escape(focus) + '"]');
+      if (back) back.focus({ preventScroll: true });
+    }
+    build();
+    if (opts.onPage) host.addEventListener('toggle', e => { const d = e.target; if (d.open && d.dataset && d.dataset.page) opts.onPage(d.dataset.page); }, true);
+
+    /* bring a page or a value into view in the form, with a short glow */
+    function reveal(t) {
+      const q = (attr, v) => host.querySelector('[' + attr + '="' + CSS.escape(v) + '"]');
+      let node = t.path ? q('data-bind', t.path) : null;
+      if (!node && t.path && t.path.startsWith('say:')) node = q('data-page', t.path.slice(4));
+      if (!node && t.page) node = q('data-page', t.page);
+      if (!node && t.page && !byPage) { // arranged by topic: the first field that belongs to that page
+        for (const sec of schema) { const f = sec.fields.find(x => pageOf(x, sec) === t.page || x.sayFor === t.page); if (f) { node = host.querySelector('[data-key="sec:' + sec.id + '"]'); break; } }
+      }
+      if (!node) return false;
+      for (let d = node.closest('details'); d; d = d.parentElement && d.parentElement.closest('details')) d.open = true;
+      if (node.tagName === 'DETAILS') node.open = true;
+      const glow = node.closest('.field') || node;
+      glow.scrollIntoView({ block: 'center', behavior: u.RM ? 'auto' : 'smooth' });
+      glow.classList.remove('ks-glow'); void glow.offsetWidth; glow.classList.add('ks-glow');
+      return true;
+    }
+    /* the preview typed something: put it in the data and the matching box */
+    function setValue(path, v) {
+      const st = setters.get(path);
+      if (st) return st(v);
+      if (path.startsWith('say:')) setSay(path.slice(4), v);
+      else { const parts = path.split('.'), k = parts.pop(); let o = data; parts.forEach(x => { o = o && o[x]; }); if (!o || typeof o !== 'object') return; o[k] = v; }
+      changed();
+    }
+    const sayMap = () => (opts.pagesOf ? Object.fromEntries(opts.pagesOf(data).map(([id]) => [id, getSay(id)])) : {});
+    return { refresh: () => showers.forEach(fn => fn()), reveal, setValue, sayMap, layout: byPage ? 'page' : 'topic' };
   };
 
   /* ---------------- music picker ---------------- */

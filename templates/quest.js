@@ -119,11 +119,12 @@
   `;
 
   const F = (key, type, label, more) => Object.assign({ key, type, label }, more || {});
-  const quizOf = d => (d.quiz || []).map(x => {
+  const quizOf = d => (d.quiz || []).map((x, si) => {
     const a = lines(x && x.answers).map(t => ({ ok: t.startsWith('*'), t: t.replace(/^\*\s*/, '') }));
     if (!a.some(z => z.ok)) a.forEach(z => { z.ok = true; });
-    return { q: (x && x.q || '').trim(), a };
+    return { si, q: (x && x.q || '').trim(), a };
   }).filter(x => x.q && x.a.length);
+  const quizPage = (d, i) => { const k = quizOf(d).findIndex(x => x.si === i); return k < 0 ? '' : 'quiz' + (k + 1); };
   /* the levels, in order: { k: kind, id: for "Page by page", l: its name in the builder, bub: what the guide says, i: quiz index } */
   const levelsOf = (d, quiz) => {
     const to = (d.to || '').trim(), P = [{ k: 'intro', id: 'intro', l: 'First screen (tap the heart)', bub: (d.introBubble || '').trim() || `Psst, ${to || 'hey you'}! I have a tiny quest for you 💌` }];
@@ -141,43 +142,44 @@
     { id: 'who', title: 'Who it is for', open: true, fields: [
       F('to', 'text', 'Their name', { max: 30 }),
       F('from', 'text', 'Your name', { max: 30 }),
-      F('introTitle', 'text', 'Title on the first screen', { max: 50 }),
-      F('introBubble', 'text', 'What your guide says first', { max: 90, placeholder: 'Psst! I have a tiny quest for you 💌' }),
-      F('endBubble', 'text', 'What your guide says on the results page', { max: 90, placeholder: 'Yaaay! You did it! 🎉' })
+      F('introTitle', 'text', 'Title on the first screen', { max: 50, page: 'intro' }),
+      F('introBubble', 'text', 'What your guide says first', { max: 90, sayFor: 'intro', placeholder: 'Psst! I have a tiny quest for you 💌' }),
+      F('endBubble', 'text', 'What your guide says on the results page', { max: 90, sayFor: 'end', placeholder: 'Yaaay! You did it! 🎉' })
     ] },
     { id: 'guide', title: 'Little guide', fields: [
       { key: 'guide', type: 'sticker', label: 'Your little guide', options: C.GUIDES, default: '🐻', help: 'An animated buddy who talks to them and reacts to everything they do.' },
       F('photo', 'image', 'Your photo instead (optional)', { help: 'Shows your photo in a circle with the guide as a little badge.' })
     ] },
     { id: 'look', title: 'Colours and lettering', fields: C.lookFields('strawberry', 'chewy', 'nunito') },
-    { id: 'pages', title: 'Page by page: guides and photos', fields: C.pageFields(d => levelsOf(d, quizOf(d)).map(p => [p.id, p.l])) },
-    { id: 'quiz', title: 'Silly quiz', fields: [
+    { id: 'pages', title: 'Page by page: guides and photos', extras: true, fields: C.pageFields(d => levelsOf(d, quizOf(d)).map(p => [p.id, p.l])) },
+    { id: 'quiz', title: 'Silly quiz', page: 'quiz', fields: [
       { key: 'quiz', type: 'repeater', label: '', max: 8, addLabel: 'Add a question', itemLabel: 'Question', title: i => i.q, blank: { q: '', answers: '' },
+        itemPage: quizPage, groupTitle: 'Silly quiz', after: 'intro',
         help: 'Put a * in front of the right answers. Wrong ones wobble and your guide teases them. No * at all means every answer is right.',
         fields: [F('q', 'text', 'Question', { max: 90 }), F('answers', 'textarea', 'Answers, one per line', { rows: 4, placeholder: '*You, obviously 💖\nA potato 🥔' })] },
       F('rightLines', 'textarea', 'What your guide says for a right answer', { rows: 3, help: 'One per line, picked at random.' }),
       F('wrongLines', 'textarea', 'What your guide says for a wrong answer', { rows: 3 })
     ] },
-    { id: 'games', title: 'Mini games', fields: [
+    { id: 'games', title: 'Mini games', basics: 'Which mini games to play', fields: [
       F('meterOn', 'toggle', 'Love meter (it never goes below 100%)'),
-      F('meterQ', 'text', 'Love meter question', { max: 60, show: d => d.meterOn !== false }),
+      F('meterQ', 'text', 'Love meter question', { page: 'meter', max: 60, show: d => d.meterOn !== false }),
       F('catchOn', 'toggle', 'Catch the falling hearts'),
-      F('catchTitle', 'text', 'Catch game title', { max: 60, show: d => d.catchOn !== false }),
+      F('catchTitle', 'text', 'Catch game title', { page: 'catch', max: 60, show: d => d.catchOn !== false }),
       F('memoryOn', 'toggle', 'Memory match'),
-      F('memoryTitle', 'text', 'Memory game title', { max: 60, show: d => d.memoryOn !== false }),
-      F('memoryCards', 'text', 'Stickers on the cards (2 to 4)', { max: 40, show: d => d.memoryOn !== false, help: 'Type 2 to 4 emoji with spaces, e.g. 😻 💖 🍓 🐻' }),
+      F('memoryTitle', 'text', 'Memory game title', { page: 'memory', max: 60, show: d => d.memoryOn !== false }),
+      F('memoryCards', 'text', 'Stickers on the cards (2 to 4)', { page: 'memory', max: 40, show: d => d.memoryOn !== false, help: 'Type 2 to 4 emoji with spaces, e.g. 😻 💖 🍓 🐻' }),
       F('scratchOn', 'toggle', 'Scratch card secret'),
-      F('scratchTitle', 'text', 'Scratch card title', { max: 60, show: d => d.scratchOn !== false }),
-      F('scratchText', 'textarea', 'The secret under the scratch card', { rows: 2, show: d => d.scratchOn !== false }),
+      F('scratchTitle', 'text', 'Scratch card title', { page: 'scratch', max: 60, show: d => d.scratchOn !== false }),
+      F('scratchText', 'textarea', 'The secret under the scratch card', { page: 'scratch', rows: 2, show: d => d.scratchOn !== false }),
       F('hugOn', 'toggle', 'Hold-to-hug button'),
-      F('hugText', 'text', 'Hug title', { max: 60, show: d => d.hugOn !== false })
+      F('hugText', 'text', 'Hug title', { page: 'hug', max: 60, show: d => d.hugOn !== false })
     ] },
-    { id: 'final', title: 'The big question', fields: [
+    { id: 'final', title: 'The big question', page: 'final', fields: [
       F('finalQ', 'text', 'The question', { max: 80 }),
       F('yesText', 'text', 'Yes button', { max: 30 }),
       F('noLines', 'textarea', 'What the No button says', { rows: 5, help: 'One per line. Every tap makes No smaller and Yes bigger. After the last line No disappears.' })
     ] },
-    { id: 'end', title: 'The ending', fields: [
+    { id: 'end', title: 'The ending', page: 'end', fields: [
       F('endTitle', 'text', 'Big title', { max: 50 }),
       F('message', 'textarea', 'Your message', { rows: 4 }),
       F('whatsapp', 'text', 'Your WhatsApp number (optional)', { max: 30, placeholder: 'e.g. +91 98765 43210', emoji: false, help: 'Adds a button that sends you their results. Leave empty and they choose who to send it to.' }),
@@ -208,26 +210,26 @@
 
     const page = (p, n) => {
       let h = '';
-      if (p.k === 'intro') h = `<h1 class="q-h">${esc(data.introTitle || (to ? 'A tiny quest for ' + to : 'A tiny quest for you'))}</h1>
+      if (p.k === 'intro') h = `<h1 class="q-h" data-ks-edit="introTitle">${esc(data.introTitle || (to ? 'A tiny quest for ' + to : 'A tiny quest for you'))}</h1>
         <button class="q-heart" type="button" id="qHeart" aria-label="Tap the heart"><i>${stk('💗')}</i></button><p class="q-taps" id="qTaps">tap the heart 5 times</p>`;
-      if (p.k === 'quiz') { const x = quiz[p.i]; h = `<h2 class="q-h">${esc(x.q)}</h2><div class="q-ans">${x.a.map((a, j) =>
+      if (p.k === 'quiz') { const x = quiz[p.i]; h = `<h2 class="q-h" data-ks-edit="quiz.${x.si}.q">${esc(x.q)}</h2><div class="q-ans">${x.a.map((a, j) =>
         `<button class="q-btn" type="button" data-ok="${a.ok ? 1 : 0}" style="--i:${j}"><b>${'ABCDEFGH'[j] || '•'}</b><span>${esc(a.t)}</span></button>`).join('')}</div>`; }
-      if (p.k === 'meter') h = `<h2 class="q-h">${esc(data.meterQ || 'How much do you love me?')}</h2><p class="q-num" id="qNum">30%</p>
+      if (p.k === 'meter') h = `<h2 class="q-h" data-ks-edit="meterQ">${esc(data.meterQ || 'How much do you love me?')}</h2><p class="q-num" id="qNum">30%</p>
         <input class="q-range" id="qRange" type="range" min="0" max="100" value="30" aria-label="Love meter"><p class="q-sm" id="qMeterHint">slide it 👉</p>`;
-      if (p.k === 'catch') h = `<h2 class="q-h">${esc(data.catchTitle || `Catch ${CATCH} falling hearts!`)}</h2><div class="q-sky" id="qSky">${preview ? GOOD.slice(0, 4).map((e, i) => `<span class="q-fall" style="--x:${18 + i * 22}%">${stk(e)}</span>`).join('') : ''}</div>
+      if (p.k === 'catch') h = `<h2 class="q-h" data-ks-edit="catchTitle">${esc(data.catchTitle || `Catch ${CATCH} falling hearts!`)}</h2><div class="q-sky" id="qSky">${preview ? GOOD.slice(0, 4).map((e, i) => `<span class="q-fall" style="--x:${18 + i * 22}%">${stk(e)}</span>`).join('') : ''}</div>
         <p class="q-count" id="qCount">0 / ${CATCH}</p><p class="q-sm">tap the hearts · not the broken one 💔</p>`;
       if (p.k === 'memory') { const deck = [...memo, ...memo]; for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
-        h = `<h2 class="q-h">${esc(data.memoryTitle || 'Find the matching pairs')}</h2><div class="q-cards" style="--cols:${deck.length > 6 ? 4 : 3}">${deck.map((e, i) =>
+        h = `<h2 class="q-h" data-ks-edit="memoryTitle">${esc(data.memoryTitle || 'Find the matching pairs')}</h2><div class="q-cards" style="--cols:${deck.length > 6 ? 4 : 3}">${deck.map((e, i) =>
           `<button class="q-card" type="button" data-e="${esc(e)}" style="--i:${i}" aria-label="Card ${i + 1}"><span class="q-cin"><span class="q-face f">?</span><span class="q-face b">${stk(e)}</span></span></button>`).join('')}</div>`; }
-      if (p.k === 'scratch') h = `<h2 class="q-h">${esc(data.scratchTitle || 'Scratch to reveal a secret')}</h2>
-        <div class="q-scratch" id="qScratch"><p class="q-secret">${esc(data.scratchText || 'You owe me 100 kisses 😘')}</p>${preview ? '' : '<canvas class="q-scv" id="qScv" aria-label="Scratch here"></canvas>'}</div><p class="q-sm" style="margin-top:16px" id="qScHint">scratch with your finger ✨</p>`;
-      if (p.k === 'hug') h = `<h2 class="q-h">${esc(data.hugText || 'Hold the button to send me a hug')}</h2>
+      if (p.k === 'scratch') h = `<h2 class="q-h" data-ks-edit="scratchTitle">${esc(data.scratchTitle || 'Scratch to reveal a secret')}</h2>
+        <div class="q-scratch" id="qScratch"><p class="q-secret" data-ks-edit="scratchText" data-ks-multi>${esc(data.scratchText || 'You owe me 100 kisses 😘')}</p>${preview ? '' : '<canvas class="q-scv" id="qScv" aria-label="Scratch here"></canvas>'}</div><p class="q-sm" style="margin-top:16px" id="qScHint">scratch with your finger ✨</p>`;
+      if (p.k === 'hug') h = `<h2 class="q-h" data-ks-edit="hugText">${esc(data.hugText || 'Hold the button to send me a hug')}</h2>
         <button class="q-hug" type="button" id="qHug" aria-label="Hold to hug"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="bg" cx="60" cy="60" r="54"/><circle class="fg" id="qRing" cx="60" cy="60" r="54" stroke-dasharray="339.3" stroke-dashoffset="339.3"/></svg>
         <span class="in">${stk('🫂')}</span></button><p class="q-sm" id="qHugHint" style="margin-top:16px">press and hold</p>`;
-      if (p.k === 'final') h = `<h2 class="q-h">${esc(data.finalQ || 'Will you be my pookie forever?')}</h2>
-        <div class="q-yn"><button class="q-btn main yes" type="button" id="qYes">${esc(yesText)}</button><button class="q-btn no" type="button" id="qNo">${esc(NO[0])}</button></div>`;
-      if (p.k === 'end') h = `<h2 class="q-h">${esc(data.endTitle || 'Quest complete! 🏆')}</h2><div class="q-chips" id="qChips"></div>
-        ${data.message ? `<p class="q-msg">${esc(data.message)}</p>` : ''}
+      if (p.k === 'final') h = `<h2 class="q-h" data-ks-edit="finalQ">${esc(data.finalQ || 'Will you be my pookie forever?')}</h2>
+        <div class="q-yn"><button class="q-btn main yes" type="button" id="qYes" data-ks-edit="yesText">${esc(yesText)}</button><button class="q-btn no" type="button" id="qNo">${esc(NO[0])}</button></div>`;
+      if (p.k === 'end') h = `<h2 class="q-h" data-ks-edit="endTitle">${esc(data.endTitle || 'Quest complete! 🏆')}</h2><div class="q-chips" id="qChips"></div>
+        ${data.message ? `<p class="q-msg" data-ks-edit="message" data-ks-multi>${esc(data.message)}</p>` : ''}
         ${(data.replyText || '').trim() ? `<a class="q-btn main" id="qWa" href="#" target="_blank" rel="noopener">${esc(from ? 'Send my results to ' + from : 'Send my results')} 💬</a>` : ''}
         ${from ? `<p class="q-sign">— ${esc(from)}</p>` : ''}${u.STK_CREDIT}`;
       return `${preview && n ? `<p class="q-pv">↓ level ${n} ↓</p>` : ''}<section class="q-page" data-n="${n}" data-k="${p.k}"${preview || !n ? '' : ' hidden'}>${h}</section>`;
@@ -241,7 +243,8 @@
 
     const $ = s => root.querySelector(s), pages = [...root.querySelectorAll('.q-page')], timers = [], T = (f, ms) => timers.push(setTimeout(f, ms));
     const G = C.guide(ex('intro').guide || pet, ex('intro').say || P[0].bub, data.photo); $('#qGuide').replaceWith(G.el);
-    pages.forEach((pg, n) => C.placePhotos(pg, EX[P[n].id]));
+    pages.forEach((pg, n) => { C.placePhotos(pg, EX[P[n].id]); pg.dataset.ksPage = P[n].id; });
+    if (preview) G.el.dataset.ksSay = 'intro'; // the builder shows one guide, above the first page
     const say = (t, re) => G.say(t, re);
     [...REACT.right, ...REACT.wrong, '😤', '♾️', '🥰', '🥺', '🔋', '😍', '🤭', '😿', ...GOOD, '💔', ...memo].forEach((e, i) => T(() => u.preloadStk(e), 1500 + i * 60));
     const fx = C.confetti($('.k-conf'), th.cols);
@@ -470,6 +473,8 @@
     title: d => (d.to ? 'A tiny quest for ' + d.to : 'A tiny quest for you'),
     defaultMusic: { type: 'library', id: 'g2' },
     schema: SCHEMA, thumb, mount,
+    pagesOf: d => levelsOf(d, quizOf(d)).map(p => [p.id, p.l]),
+    sayHint: (id, d) => (levelsOf(d, quizOf(d)).find(p => p.id === id) || {}).bub || '',
     sample: {
       to: 'Maya', from: 'Arjun', guide: '🐻', photo: '', theme: 'strawberry', titleFont: 'chewy', bodyFont: 'nunito', introTitle: '', introBubble: '',
       quiz: [

@@ -146,7 +146,7 @@
     const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('Could not load ' + src)); document.head.append(s);
   }));
   /* a file can register a family of templates: 'wedding-hindu' lives in templates/wedding.js */
-  KS.V = '20'; // bump when templates change so phones fetch the new files instead of a cached copy
+  KS.V = '21'; // bump when templates change so phones fetch the new files instead of a cached copy
   KS.loadTemplate = async id => { if (!KS.templates[id]) await u.loadScript('templates/' + String(id).split('-')[0] + '.js?v=' + KS.V); if (!KS.templates[id]) throw new Error('Unknown template'); return KS.templates[id]; };
   u.font = href => { if (document.querySelector('link[data-ks-font="' + href + '"]')) return; const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.dataset.ksFont = href; document.head.append(l); };
 })();

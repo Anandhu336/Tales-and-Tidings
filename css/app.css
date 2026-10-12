@@ -468,3 +468,29 @@ body.is-lp{background:#faf5ec}
 .dash-sub{font:600 19px var(--display);margin:14px 0 2px}
 .dash-sub:first-child{margin-top:0}
 .dash-sub small{font:500 13px var(--sans);color:var(--muted)}
+
+/* ---- editor: arranged by page, settings, finding things ---- */
+.ed-h{margin:20px 4px 10px;font:700 12px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ed-h:first-child{margin-top:4px}
+.ed-h small{display:block;margin-top:4px;font:400 12.5px/1.45 var(--sans);letter-spacing:0;text-transform:none}
+.pcard>summary{justify-content:flex-start;gap:10px}
+.pcard>summary::after{margin-left:auto}
+.pc-n{flex:none;min-width:28px;height:28px;padding:0 7px;border-radius:99px;background:#fdecef;color:var(--brand-d);font:700 13px/28px var(--sans);text-align:center}
+.pc-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.pextras{margin-top:18px;padding:16px;border-radius:14px;background:#fbf7f2;border:1px dashed #e4d8ca}
+.pextras .px-h{margin:0 0 4px;font:700 13px var(--sans);color:var(--brand-d)}
+.px-photo{padding:12px 0;border-top:1px solid var(--line2)}
+.px-photo .field{margin-bottom:8px}
+.repbody .pextras{margin-top:12px}
+.ks-glow{animation:ksglow 1.6s ease}
+@keyframes ksglow{20%{box-shadow:0 0 0 3px rgba(180,71,95,.45);border-radius:12px;background:#fff6f7}}
+.edset-wrap{position:relative}
+.edset-wrap .hide-s{margin-left:2px}
+.edset{position:absolute;right:0;top:calc(100% + 8px);z-index:50;width:min(340px,calc(100vw - 32px));background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 20px 50px rgba(40,20,10,.18)}
+.edset h3{margin:0 0 12px;font:600 18px var(--display)}
+.es-blk{display:flex;flex-direction:column;gap:8px;padding-bottom:14px;border-bottom:1px solid var(--line2);margin-bottom:12px}
+.es-blk>b,.es-row b{font:600 14px var(--sans)}
+.es-blk small,.es-row small{display:block;color:var(--muted);font-size:12.5px;line-height:1.45}
+.es-row{display:flex;gap:12px;align-items:flex-start;padding:8px 0;cursor:pointer}
+.es-row input{margin-top:3px;width:18px;height:18px;accent-color:var(--brand);flex:none}
+@media(max-width:640px){.edset-wrap .hide-s{display:none}}

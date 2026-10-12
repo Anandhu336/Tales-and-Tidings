@@ -139,7 +139,11 @@
   `;
 
   const field = (key, type, label, more) => Object.assign({ key, type, label }, more || {});
-  const stepsOf = (mode, d) => (mode === 'date' ? d.steps || [] : []).map(st => ({ q: (st && st.q || '').trim(), opts: String(st && st.options || '').split('\n').map(u.splitEmoji).filter(o => o.e || o.l) })).filter(st => st.opts.length);
+  const stepsOf = (mode, d) => (mode === 'date' ? d.steps || [] : []).map((st, si) => ({ si, q: (st && st.q || '').trim(), opts: String(st && st.options || '').split('\n').map(u.splitEmoji).filter(o => o.e || o.l) })).filter(st => st.opts.length);
+  /* which page a planning-page item is ('s1', 's2' …), or '' while it has no choices yet */
+  const stepPage = (d, i) => { const k = stepsOf('date', d).findIndex(st => st.si === i); return k < 0 ? '' : 's' + (k + 1); };
+  /* what goes on the yes page when there are no planning pages, and on the last page when there are */
+  const tailPage = mode => d => (mode === 'date' && (stepsOf(mode, d).length || d.whenOn === true) ? 'end' : 'yes');
   /* the pages a visitor goes through, for "Page by page" */
   const pagesOf = (mode, d) => {
     const st = stepsOf(mode, d);
@@ -148,40 +152,41 @@
       ...(when ? [['when', 'Pick the date and time']] : []), ...(st.length || when ? [['end', 'Last page']] : [])];
   };
   const schema = mode => [
-    { id: 'ask', title: mode === 'date' ? 'The question' : 'Your apology', open: true, fields: [
+    { id: 'ask', title: mode === 'date' ? 'The question' : 'Your apology', basics: 'Names and opening screen', open: true, fields: [
       field('to', 'text', 'Their name', { max: 30 }),
-      field('question', 'text', 'The big question', { max: 80 }),
-      field('sub', 'textarea', 'A line underneath (optional)', { rows: 2 }),
+      field('question', 'text', 'The big question', { max: 80, page: 'q' }),
+      field('sub', 'textarea', 'A line underneath (optional)', { rows: 2, page: 'q' }),
       field('from', 'text', 'Your name', { max: 30 }),
       field('gateOn', 'toggle', 'Start with a "tap to open" screen', { help: 'Phones only play music after the first tap, so this screen makes your song start the moment they open your page.' }),
       field('gateText', 'text', 'Words on the opening screen', { max: 70, show: d => d.gateOn !== false, placeholder: 'You have a little message 💌' })
     ] },
     { id: 'guide', title: 'Little guide', fields: [
       C.guideFields(MODES[mode].guide)[0],
-      field('firstSay', 'text', 'What your guide says first', { max: 110, placeholder: MODES[mode].first('Maya', 'Arjun'), help: 'Leave empty to use this line with your names.' }),
-      C.guideFields(MODES[mode].guide, 'What your guide says each time they try No', 'One per line, in order. Leave empty for the built-in lines.')[1],
-      field('yaySay', 'text', 'What your guide says when they say yes', { max: 90, placeholder: MODES[mode].yay }),
-      ...(mode === 'date' ? [field('endSay', 'text', 'What your guide says on the last page', { max: 90, placeholder: MODES[mode].end })] : []),
+      field('firstSay', 'text', 'What your guide says first', { max: 110, sayFor: 'q', placeholder: MODES[mode].first('Maya', 'Arjun'), help: 'Leave empty to use this line with your names.' }),
+      Object.assign(C.guideFields(MODES[mode].guide, 'What your guide says each time they try No', 'One per line, in order. Leave empty for the built-in lines.')[1], { page: 'q' }),
+      field('yaySay', 'text', 'What your guide says when they say yes', { max: 90, sayFor: 'yes', placeholder: MODES[mode].yay }),
+      ...(mode === 'date' ? [field('endSay', 'text', 'What your guide says on the last page', { max: 90, sayFor: 'end', placeholder: MODES[mode].end })] : []),
       field('photo', 'image', 'Your photo instead (optional)', { help: 'Shows your photo in a circle with the guide as a little badge.' })
     ] },
     { id: 'look', title: 'Colours and lettering', fields: C.lookFields(MODES[mode].theme, 'fredoka', 'fredoka') },
-    { id: 'pages', title: 'Page by page: guides and photos', fields: C.pageFields(d => pagesOf(mode, d)) },
-    { id: 'trick', title: 'The runaway No button', fields: [
+    { id: 'pages', title: 'Page by page: guides and photos', extras: true, fields: C.pageFields(d => pagesOf(mode, d)) },
+    { id: 'trick', title: 'The runaway No button', page: 'q', fields: [
       field('yesText', 'text', 'Words on the Yes button', { max: 24 }),
       field('noLines', 'textarea', 'What the No button says', { rows: 9, help: 'One per line. Each time they try to tap No, it runs away and shows the next line while Yes gets bigger. After the last line it gives up and turns into another Yes.' })
     ] },
-    { id: 'yes', title: 'After they say yes', fields: [
-      field('yayTitle', 'text', 'Big happy line', { max: 60 }),
+    { id: 'yes', title: 'After they say yes', page: tailPage(mode), fields: [
+      field('yayTitle', 'text', 'Big happy line', { max: 60, page: 'yes' }),
       ...(mode === 'date' ? [
-        field('yayLine', 'text', 'Cute line under it', { max: 90 }),
-        field('planBtn', 'text', 'Button to start the planning pages', { max: 40 }),
+        field('yayLine', 'text', 'Cute line under it', { max: 90, page: 'yes' }),
+        field('planBtn', 'text', 'Button to start the planning pages', { max: 40, page: 'yes' }),
         { key: 'steps', type: 'repeater', label: 'Cute planning pages', max: 6, addLabel: 'Add a question page', itemLabel: 'Page', title: i => i.q, blank: { q: '', options: '' },
+          page: 'steps', itemPage: stepPage, groupTitle: 'Planning pages', after: 'yes',
           help: 'Each page asks one fun question with choices to tap. Start a choice with an emoji (🍿 🍕 😻 💖 …) and it shows as an animated sticker. Their picks are sent back to you.',
           fields: [field('q', 'text', 'Question', { max: 80 }), field('options', 'textarea', 'Choices, one per line', { rows: 6, placeholder: '🍿 Movie night' })] },
-        field('whenOn', 'toggle', 'Let them pick the date and time', { help: 'Adds a planning page with day buttons, a calendar and time buttons. Their choice goes into the plan, the calendar file and the message they send you.' }),
-        field('whenQ', 'text', 'Question on that page', { max: 80, show: d => d.whenOn }),
-        field('whenTimes', 'textarea', 'Time choices, one per line', { rows: 4, show: d => d.whenOn, placeholder: WHEN_TIMES, help: 'End each line with the time, e.g. 🌆 Evening 18:30. They can also type any exact time.' }),
-        field('endTitle', 'text', 'Title on the last page', { max: 60 })
+        field('whenOn', 'toggle', 'Let them pick the date and time', { page: 'steps', help: 'Adds a planning page with day buttons, a calendar and time buttons. Their choice goes into the plan, the calendar file and the message they send you.' }),
+        field('whenQ', 'text', 'Question on that page', { max: 80, page: 'when', show: d => d.whenOn }),
+        field('whenTimes', 'textarea', 'Time choices, one per line', { rows: 4, page: 'when', show: d => d.whenOn, placeholder: WHEN_TIMES, help: 'End each line with the time, e.g. 🌆 Evening 18:30. They can also type any exact time.' }),
+        field('endTitle', 'text', 'Title on the last page', { max: 60, page: 'end' })
       ] : []),
       field('message', 'textarea', 'Your message', { rows: 4 }),
       ...(mode === 'date' ? [
@@ -199,6 +204,16 @@
       field('replyText', 'text', 'Message they send back', { max: 120 })
     ] }
   ];
+
+  /* the line the guide says on a page when you leave it empty (shown greyed in the builder) */
+  const sayHint = (mode, id, d) => {
+    const M = MODES[mode];
+    if (id === 'q') return M.first((d.to || '').trim(), (d.from || '').trim());
+    if (id === 'yes') return M.yay;
+    if (id === 'end') return M.end || '';
+    if (id === 'when') return 'Pick any day you like 📅';
+    const k = /^s(\d+)$/.exec(id); return k && M.pickLines ? M.pickLines[(+k[1] - 1) % M.pickLines.length] : '';
+  };
 
   function mount(root, data, ctx, mode) {
     const M = MODES[mode], th = C.theme(data, M.theme), preview = !!ctx.preview;
@@ -248,7 +263,7 @@
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const TIMES = ((data.whenTimes || '').trim() || WHEN_TIMES).split('\n').map(l => { const m = /(\d{1,2}):(\d{2})\s*$/.exec(l.trim()); if (!m) return null; const o = u.splitEmoji(l.trim().slice(0, m.index)); return { e: o.e, l: o.l, t: pad2(+m[1]) + ':' + m[2] }; }).filter(Boolean);
     const whenHtml = !whenOn ? '' : `${pv('pick the date and time')}<section class="a-scr a-step" data-step="${steps.length}" data-when${hid}>${paws(steps.length)}
-        <h2>${esc((data.whenQ || '').trim() || 'When are you free, cutie? 📅')}</h2>
+        <h2 data-ks-edit="whenQ">${esc((data.whenQ || '').trim() || 'When are you free, cutie? 📅')}</h2>
         <p class="a-wl">pick a day</p><div class="a-days">${Array.from({ length: 14 }, (_, k) => { const d = new Date(today); d.setDate(d.getDate() + k);
           return `<button class="a-day" type="button" data-d="${isoDay(d)}" style="--i:${k}"><span>${k === 0 ? 'Today' : k === 1 ? 'Tomorrow' : esc(d.toLocaleDateString(undefined, { weekday: 'short' }))}</span><b>${d.getDate()}</b><span>${esc(d.toLocaleDateString(undefined, { month: 'short' }))}</span></button>`; }).join('')}</div>
         <label class="a-other">or another day <input type="date" class="a-odate" min="${isoDay(today)}"></label>
@@ -257,23 +272,23 @@
         <button class="a-btn a-yes a-wgo" type="button" disabled>That works! 💖</button>
         <button class="a-back" type="button">← back</button></section>`;
     const stepHtml = steps.map((st, i) => `${pv('page ' + (i + 2))}<section class="a-scr a-step" data-step="${i}"${hid}>${paws(i)}
-        <h2>${esc(st.q || 'Pick one, cutie')}</h2><div class="a-opts">${st.opts.map((o, k) => `<button class="a-opt" type="button" data-k="${k}" style="--i:${k}">${stk(o.e || '✨')}<span>${esc(o.l || o.e)}</span></button>`).join('')}</div>
+        <h2 data-ks-edit="steps.${st.si}.q">${esc(st.q || 'Pick one, cutie')}</h2><div class="a-opts">${st.opts.map((o, k) => `<button class="a-opt" type="button" data-k="${k}" style="--i:${k}">${stk(o.e || '✨')}<span>${esc(o.l || o.e)}</span></button>`).join('')}</div>
         <button class="a-back" type="button">← back</button></section>`).join('');
 
     root.innerHTML = `<div class="a-hearts">${hearts}</div><canvas class="k-conf"></canvas>
       <main class="a-scr a-q" id="aQ">
         ${to ? `<p class="a-to">Hey ${esc(to)},</p>` : ''}
-        <h1 class="a-qh">${esc(data.question || (mode === 'date' ? 'Will you go on a date with me?' : 'I’m sorry. Forgive me?'))}</h1>
-        ${data.sub ? `<p class="a-sub">${esc(data.sub)}</p>` : ''}
-        <div class="a-btns"><button class="a-btn a-yes" id="aYes" type="button">${esc(yesText)}</button><button class="a-btn a-no" id="aNo" type="button">${esc(NO[0])}</button></div></main>
+        <h1 class="a-qh" data-ks-edit="question">${esc(data.question || (mode === 'date' ? 'Will you go on a date with me?' : 'I’m sorry. Forgive me?'))}</h1>
+        ${data.sub ? `<p class="a-sub" data-ks-edit="sub" data-ks-multi>${esc(data.sub)}</p>` : ''}
+        <div class="a-btns"><button class="a-btn a-yes" id="aYes" type="button" data-ks-edit="yesText">${esc(yesText)}</button><button class="a-btn a-no" id="aNo" type="button">${esc(NO[0])}</button></div></main>
       ${pv('after they say yes')}
       <section class="a-scr a-ans" id="aAns"${hid}>
-        <h2 class="a-yay">${esc(data.yayTitle || 'Yay!')}</h2>${data.yayLine && hasPlan ? `<p class="a-yline">${esc(data.yayLine)}</p>` : ''}
-        ${hasPlan ? `<button class="a-btn a-yes" id="aPlan" type="button">${esc(data.planBtn || 'Let’s plan it 🐾')}</button>`
-          : `${data.message ? `<p class="a-msg">${esc(data.message)}</p>` : ''}${A.join('')}${sign}${u.STK_CREDIT}`}</section>
+        <h2 class="a-yay" data-ks-edit="yayTitle">${esc(data.yayTitle || 'Yay!')}</h2>${data.yayLine && hasPlan ? `<p class="a-yline" data-ks-edit="yayLine">${esc(data.yayLine)}</p>` : ''}
+        ${hasPlan ? `<button class="a-btn a-yes" id="aPlan" type="button" data-ks-edit="planBtn">${esc(data.planBtn || 'Let’s plan it 🐾')}</button>`
+          : `${data.message ? `<p class="a-msg" data-ks-edit="message" data-ks-multi>${esc(data.message)}</p>` : ''}${A.join('')}${sign}${u.STK_CREDIT}`}</section>
       ${stepHtml}${whenHtml}
-      ${hasPlan ? `${pv('last page')}<section class="a-scr a-end" id="aEnd"${hid}><h2 class="a-yay">${esc(data.endTitle || 'It’s a date! 💖')}</h2>
-        <div class="a-picks" id="aPicks"></div>${data.message ? `<p class="a-msg">${esc(data.message)}</p>` : ''}${A.join('')}${sign}${u.STK_CREDIT}</section>` : ''}`;
+      ${hasPlan ? `${pv('last page')}<section class="a-scr a-end" id="aEnd"${hid}><h2 class="a-yay" data-ks-edit="endTitle">${esc(data.endTitle || 'It’s a date! 💖')}</h2>
+        <div class="a-picks" id="aPicks"></div>${data.message ? `<p class="a-msg" data-ks-edit="message" data-ks-multi>${esc(data.message)}</p>` : ''}${A.join('')}${sign}${u.STK_CREDIT}</section>` : ''}`;
 
     const $ = s => root.querySelector(s), q = $('#aQ'), ans = $('#aAns'), yes = $('#aYes'), no = $('#aNo');
     const timers = [], T = (f, ms) => timers.push(setTimeout(f, ms)), cleanup = [];
@@ -347,7 +362,7 @@
     /* pages after yes: yay -> one page per question -> summary */
     const pages = [q, ans, ...root.querySelectorAll('.a-step')], end = $('#aEnd'), picks = [];
     if (end) pages.push(end);
-    pages.forEach((pg, i) => C.placePhotos(pg, EX[ids[i]]));
+    pages.forEach((pg, i) => { C.placePhotos(pg, EX[ids[i]]); pg.dataset.ksPage = ids[i]; });
     if (preview) pages.slice(1).forEach((pg, i) => pg.prepend(C.guide(ex(ids[i + 1]).guide || pet, ex(ids[i + 1]).say || (pg === ans ? yayLine : pg === end ? endLine : ''), data.photo).el)); // the builder shows every page at once
     let at = 0;
     const go = i => {
@@ -438,7 +453,7 @@
     for: 'Asking someone out, proposals, Valentine’s, prom',
     title: d => (d.to ? d.to + ', I have a question…' : 'I have a question…'),
     defaultMusic: { type: 'library', id: 'g2' },
-    schema: schema('date'), sample: Object.assign({ noLines: MODES.date.noLines }, MODES.date.sample),
+    schema: schema('date'), pagesOf: d => pagesOf('date', d), sayHint: (id, d) => sayHint('date', id, d), sample: Object.assign({ noLines: MODES.date.noLines }, MODES.date.sample),
     thumb: thumb('#fff0f6', '#ffcfe3', '#ff3d8b', '😺', 'Will you go on', 'a date with me?', 'Yes!', 'No'),
     mount: (r, d, c) => mount(r, d, c, 'date')
   });
@@ -448,7 +463,7 @@
     for: 'Making up after a fight, apologies, cheering someone up',
     title: d => (d.to ? d.to + ', I’m sorry' : 'I’m sorry'),
     defaultMusic: { type: 'library', id: 'g1' },
-    schema: schema('sorry'), sample: Object.assign({ noLines: MODES.sorry.noLines }, MODES.sorry.sample),
+    schema: schema('sorry'), pagesOf: d => pagesOf('sorry', d), sayHint: (id, d) => sayHint('sorry', id, d), sample: Object.assign({ noLines: MODES.sorry.noLines }, MODES.sorry.sample),
     thumb: thumb('#f8f4ff', '#e3d8ff', '#8f6bff', '🐻', 'I’m really sorry.', 'Forgive me?', 'Okay', 'Never'),
     mount: (r, d, c) => mount(r, d, c, 'sorry')
   });
