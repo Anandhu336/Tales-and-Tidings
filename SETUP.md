@@ -48,12 +48,32 @@ Upload **everything** in this folder to your GitHub repository: `index.html`, `c
 
 Try it: pick a template, add a photo, click **Publish**, and open the link it gives you.
 
+## 6. Switch on accounts (sign in and dashboard)
+
+People can create a free account. While they work, their unfinished pages (with photos and songs) save to the account as **drafts**, and every page they publish is saved too. Both are listed on their **dashboard** (the **Sign in** / **My dashboard** link at the top of the home page). From there they can carry on with a draft, or edit, view, copy the link or delete a published page, on any device. Deleting a page or draft also deletes the photos and songs it uploaded.
+
+If you set up Supabase **before** accounts and drafts were added, run `supabase/setup.sql` again (SQL Editor, paste everything, Run). It is safe to run more than once and keeps all existing pages.
+
+Then, in Supabase:
+
+1. Click **Authentication**, then **URL Configuration**.
+2. Set **Site URL** to your site's address, for example `https://yourname.github.io/tales-and-tidings/`.
+3. Under **Redirect URLs**, add that same address. If you also test on your computer, add the local address too, for example `http://localhost:5500/`.
+
+This is where the "confirm your email" and "reset your password" links send people back to.
+
+**Email confirmation.** By default Supabase emails a confirmation link before a new account can sign in. Supabase's built-in email sender only sends a few emails per hour. For a small site you can turn confirmation off: **Authentication, then Sign In / Providers, then Email**, switch off **Confirm email**. For a busier site, connect your own email sender under **Authentication, then Emails, then SMTP Settings**.
+
+Pages made **without** an account still work as before (editable only from the browser that made them). When that person later signs in on the same browser, those pages move into their account automatically.
+
 ## Good to know
 
 - **Free projects pause after a week with no activity.** Pages stop opening until you click **Restore** in Supabase. Visiting the dashboard now and then, or upgrading, avoids this.
 - **Free limits.** Roughly 1 GB of photo and song storage and a few GB of downloads per month. Photos are shrunk automatically before upload, so this goes a long way.
 - **Anyone can create pages.** That is what makes the site open to everyone. Files are limited to 12 MB each and to pictures and audio only. If someone misuses it, you can delete files and pages from the Supabase dashboard (Table Editor and Storage).
 - **Songs people upload.** Uploading music you do not own can cause copyright problems for the site owner. The upload box tells people to use only music they may share. The built-in songs in `music/` are public domain.
-- **Editing later.** Pages can be edited from the device and browser that published them, from **Your pages** on the home screen. The secret edit key is stored in that browser. If you clear browser data you lose the ability to edit that page (it stays online).
+- **Editing later.** Signed-in people edit their pages from **My dashboard** on any device. Without an account, a page can only be edited from the browser that published it (its secret edit key is stored there), so clearing browser data loses the ability to edit it (it stays online). Signing in on that browser before clearing it saves the page into the account.
+- **Deleting a page or draft** from the dashboard also deletes the photos and songs uploaded for it. Files uploaded **without** an account have no owner, so they stay in Storage; you can clean those out from the Supabase dashboard (Storage, then `media`, folder named after the page id).
+- **Drafts** saved to accounts live in the `drafts` table (up to 50 per person). Their photos go in `media/drafts/<draft id>/` and are kept when the draft is published, because the page uses them.
 - **Adding your own built-in songs.** See `music/README.txt`.
 - **`legacy/garden-letter.html`** is the old single-page garden letter, kept for reference. You can delete it.

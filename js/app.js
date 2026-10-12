@@ -79,7 +79,7 @@
     ['Do my guests need to sign up or install anything?', 'No. Guests just tap the link. There is nothing to download and no account to create.'],
     ['Can guests reply or send wishes?', 'Yes. Wedding designs include an RSVP form and a "Send Greetings" button. Replies arrive on your WhatsApp.'],
     ['Can I add music, a video or a live stream?', 'Yes. Pick one of our songs, upload your own or paste a YouTube link. Wedding designs also take a YouTube video and a live-stream link.'],
-    ['Can I edit it after publishing?', 'Yes. Your pages are listed on this home screen on the device you made them on. Open one, make changes and publish again.']
+    ['Can I edit it after publishing?', 'Yes. Create a free account and every page you publish is saved to your dashboard. Sign in from any phone or computer, open a page, change anything and save. The link stays the same.']
   ];
 
   let heroOn = true, heroVisible = () => {}, lpObs = null, lpTimers = [];
@@ -133,7 +133,7 @@
     if (teardown) { teardown(); teardown = null; }
     unmount(); document.title = 'Tales & Tidings: stories and invitations for the people you love'; document.body.className = 'is-app is-lp'; window.scrollTo(0, 0);
     u.font('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,400;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap');
-    const mine = B.myPages();
+    const mine = B.signedIn() ? [] : B.myPages(); // signed in: pages live in the dashboard instead
     const go = sel => e => { if (e) e.preventDefault(); const t = document.querySelector(sel); if (t) t.scrollIntoView({ behavior: u.RM ? 'auto' : 'smooth' }); };
     const card = id => { const T = KS.templates[id];
       return el('button', { class: 'tcard', type: 'button', onclick: () => { location.hash = '#/new/' + id; } },
@@ -184,7 +184,8 @@
       el('div', { class: 'lp-strip' }, el('div', { class: 'lp-in' }, el('span', {}, 'Stories and invitations for the people you love'),
         el('nav', {}, el('a', { href: '#lp-how', onclick: go('#lp-how') }, 'How it works'), el('a', { href: '#lp-faq', onclick: go('#lp-faq') }, 'FAQ')))),
       el('header', { class: 'lp-nav' }, el('div', { class: 'lp-in' }, brand(),
-        el('nav', {}, el('a', { href: '#lp-collection', onclick: go('#lp-collection') }, 'Invitations'), mine.length ? el('a', { href: '#lp-mine', onclick: go('#lp-mine') }, 'My pages') : null,
+        el('nav', {}, el('a', { href: '#lp-collection', onclick: go('#lp-collection'), class: 'hide-s' }, 'Invitations'),
+          B.configured() ? el('a', { href: '#/account' }, B.signedIn() ? 'My dashboard' : 'Sign in') : mine.length ? el('a', { href: '#lp-mine', onclick: go('#lp-mine') }, 'My pages') : null,
           el('a', { href: '#lp-faq', onclick: go('#lp-faq'), class: 'hide-s' }, 'FAQ'), createBtn()))),
 
       el('section', { class: 'lp-hero' }, el('div', { class: 'lp-in' },
@@ -218,7 +219,9 @@
         h2('Discover Our', '', 'Collection of <b>Elegant</b> E-invites'), sections,
         el('div', { class: 'lp-cta2' }, el('p', {}, 'Browse, customise and share a stunning invitation in minutes.'), createBtn()))),
 
-      mine.length ? el('section', { class: 'lp-sec mine', id: 'lp-mine' }, el('div', { class: 'lp-in' }, el('h2', { class: 'lp-h2' }, 'Your pages'), mine.map(p => myRow(p)))) : null,
+      mine.length ? el('section', { class: 'lp-sec mine', id: 'lp-mine' }, el('div', { class: 'lp-in' }, el('h2', { class: 'lp-h2' }, 'Your pages'),
+        B.configured() ? el('p', { class: 'help top' }, 'These are saved in this browser only. ', el('a', { href: '#/account' }, 'Create a free account'), ' to keep them safe and edit them from any device.') : null,
+        mine.map(p => myRow(p)))) : null,
 
       el('section', { class: 'lp-steps', id: 'lp-how' }, el('div', { class: 'lp-in' },
         [['Choose a Template', 'Pick a wedding, birthday or letter design you love.'], ['Personalise', 'Add your names, words, colours and a song.'], ['Add Event Details', 'Enter venues, dates, timings, photos and notes.'], ['Share Instantly', 'Publish and send one link on WhatsApp, email or social media.']]
@@ -283,7 +286,127 @@
       el('button', { class: 'link', type: 'button', onclick: () => { if (confirm('Remove this from your list? The page itself stays online.')) { B.forgetPage(p.id); home(); } } }, 'Remove from list'));
   }
 
-  async function editor(tplId, editing) {
+  /* ---------------- accounts: sign in, and the dashboard of your pages ---------------- */
+  function shell(title, ...kids) {
+    if (teardown) { teardown(); teardown = null; }
+    unmount(); document.body.className = 'is-app'; window.scrollTo(0, 0); document.title = title + ' · Tales & Tidings';
+    app().textContent = '';
+    app().append(el('div', { class: 'acct' },
+      el('header', { class: 'acct-top' }, el('a', { href: '#/', class: 'acct-home' }, brand()),
+        el('nav', {}, el('a', { class: 'btn ghost', href: '#/' }, 'Home'),
+          B.signedIn() ? el('button', { class: 'btn ghost', type: 'button', onclick: async () => { await B.signOut(); u.toast('Signed out'); location.hash = '#/'; } }, 'Sign out') : null)),
+      el('main', { class: 'acct-main' }, ...kids)));
+  }
+
+  function account() {
+    if (!B.configured()) return shell('Account', el('div', { class: 'acct-card' }, el('h1', {}, 'Accounts are not switched on yet'),
+      el('p', { class: 'help', html: 'Connect a free Supabase project first: open <code>SETUP.md</code> and follow the steps.' })));
+    return B.signedIn() ? dashboard() : signIn();
+  }
+
+  function signIn(mode) {
+    mode = mode || 'in';
+    const email = el('input', { type: 'email', required: true, autocomplete: 'email', placeholder: 'you@example.com', id: 'ac-email' });
+    const pass = el('input', { type: 'password', required: true, minlength: '6', autocomplete: mode === 'up' ? 'new-password' : 'current-password', id: 'ac-pass' });
+    const msg = el('p', { class: 'acct-msg', role: 'status' });
+    const btn = el('button', { class: 'btn primary big', type: 'submit' }, mode === 'up' ? 'Create account' : 'Sign in');
+    const say = (t, bad) => { msg.textContent = t; msg.classList.toggle('err', !!bad); };
+    const form = el('form', { class: 'acct-form', novalidate: true, onsubmit: async e => {
+      e.preventDefault();
+      const em = email.value.trim(), pw = pass.value;
+      if (!/^\S+@\S+\.\S+$/.test(em)) return say('Please enter your email address.', true);
+      if (pw.length < 6) return say('Your password needs at least 6 characters.', true);
+      btn.disabled = true; say(mode === 'up' ? 'Creating your account…' : 'Signing in…');
+      try {
+        const s = mode === 'up' ? await B.signUp(em, pw) : await B.signIn(em, pw);
+        if (!s) { btn.disabled = false; return say('Almost there: we sent a link to ' + em + '. Open it to confirm your email, and you will be signed in.'); }
+        await B.claimDevicePages();
+        u.toast(mode === 'up' ? 'Welcome! Your account is ready.' : 'Welcome back');
+        if (location.hash === '#/account') dashboard(); else location.hash = '#/account';
+      } catch (err) { btn.disabled = false; say(err.message || 'Something went wrong.', true); }
+    } },
+      el('label', { for: 'ac-email' }, 'Email'), email,
+      el('label', { for: 'ac-pass' }, 'Password'), pass, mode === 'up' ? el('p', { class: 'help' }, 'At least 6 characters.') : null,
+      btn, msg);
+    const forgot = el('button', { class: 'link', type: 'button', onclick: async () => {
+      const em = email.value.trim(); if (!/^\S+@\S+\.\S+$/.test(em)) { email.focus(); return say('Type your email above, then tap "Forgot password" again.', true); }
+      try { await B.resetPassword(em); say('If there is an account for ' + em + ', a link to choose a new password is on its way.'); } catch (err) { say(err.message, true); }
+    } }, 'Forgot password?');
+    const local = B.myPages().length;
+    shell(mode === 'up' ? 'Create account' : 'Sign in', el('div', { class: 'acct-card' },
+      el('h1', {}, mode === 'up' ? 'Create your free account' : 'Sign in'),
+      el('p', { class: 'acct-sub' }, 'Keep every invitation, letter and birthday page you publish in one place, and edit them from any phone or computer.'),
+      local ? el('div', { class: 'notice' }, 'The ' + (local === 1 ? 'page' : local + ' pages') + ' you published in this browser will move into your account when you sign in.') : null,
+      form,
+      el('div', { class: 'acct-alt' }, mode === 'up'
+        ? el('span', {}, 'Already have an account? ', el('button', { class: 'link', type: 'button', onclick: () => signIn('in') }, 'Sign in'))
+        : el('span', {}, 'New here? ', el('button', { class: 'link', type: 'button', onclick: () => signIn('up') }, 'Create an account')),
+        mode === 'in' ? forgot : null)));
+    email.focus();
+  }
+
+  async function dashboard() {
+    const list = el('div', { class: 'dash-list' }, el('p', { class: 'help' }, 'Loading your pages…'));
+    const who = (B.user() || {}).email || '';
+    shell('My dashboard',
+      el('div', { class: 'dash-head' }, el('div', {}, el('h1', {}, 'My pages'), who ? el('p', { class: 'help' }, 'Signed in as ' + who) : null),
+        el('a', { class: 'btn primary', href: '#/designs' }, '+ Create a new page')),
+      list);
+    let pages, drafts;
+    try { await B.claimDevicePages(); [pages, drafts] = await Promise.all([B.accountPages(), B.accountDrafts()]); }
+    catch (e) {
+      if (!B.signedIn()) { u.toast('Please sign in again.'); return signIn(); }
+      list.textContent = ''; return list.append(el('p', { class: 'err' }, e.message || 'Could not load your pages.'), el('button', { class: 'btn', type: 'button', onclick: dashboard }, 'Try again'));
+    }
+    if (location.hash.replace(/^#\/?/, '') !== 'account') return; // moved on while loading
+    list.textContent = '';
+    if (!pages.length && !drafts.length) return list.append(el('div', { class: 'dash-empty' }, el('h2', {}, 'No pages yet'), el('p', {}, 'Pick a design and make it yours. Your work saves here as you go, and stays ready to edit after you publish.'), el('a', { class: 'btn primary', href: '#/designs' }, 'Choose a design')));
+    if (drafts.length) list.append(el('h2', { class: 'dash-sub' }, 'Drafts', el('small', {}, ' · not published yet')), ...drafts.map(p => dashRow(p, true)));
+    if (pages.length) list.append(el('h2', { class: 'dash-sub' }, 'Published'), ...pages.map(p => dashRow(p)));
+  }
+
+  function dashRow(p, isDraft) {
+    const d = p.data || {}, T = KS.templates[d.t];
+    let title = ''; try { title = T && T.title ? T.title(d.d || {}) : ''; } catch (_) {}
+    const link = B.pageLink(p.id), day = x => new Date(x).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+    const row = el('div', { class: 'dash-row' },
+      el('div', { class: 'dash-thumb', html: (T && T.thumb) || '' }),
+      el('div', { class: 'dash-info' }, el('b', {}, title || (T ? T.name : 'Untitled')),
+        el('small', {}, (T ? T.name : d.t || '') + (isDraft ? ' · saved ' : ' · updated ') + day(p.updated_at) + (p.updated_at !== p.created_at ? ' · started ' + day(p.created_at) : ''))),
+      el('div', { class: 'dash-act' },
+        isDraft ? el('a', { class: 'btn primary', href: '#/draft/' + p.id }, 'Continue') : [
+          el('a', { class: 'btn primary', href: '#/edit/' + p.id }, 'Edit'),
+          el('a', { class: 'btn', href: link, target: '_blank', rel: 'noopener' }, 'View'),
+          el('button', { class: 'btn', type: 'button', onclick: async () => { try { await navigator.clipboard.writeText(link); u.toast('Link copied'); } catch (_) { u.toast(link); } } }, 'Copy link')],
+        el('button', { class: 'link danger', type: 'button', onclick: async () => {
+          if (!confirm(isDraft ? 'Delete this draft and its photos? This cannot be undone.' : 'Delete "' + (title || 'this page') + '" and its photos and songs? The link will stop working for everyone. This cannot be undone.')) return;
+          try {
+            if (isDraft) await B.deleteDraft(p.id, d); else { await B.deletePage(p.id, d); B.forgetPage(p.id); }
+            const head = row.previousElementSibling; row.remove();
+            if (head && head.matches('.dash-sub') && !(head.nextElementSibling && head.nextElementSibling.matches('.dash-row'))) head.remove();
+            u.toast(isDraft ? 'Draft deleted' : 'Page deleted'); if (!$('.dash-row')) dashboard();
+          } catch (e) { u.toast(e.message); }
+        } }, 'Delete')));
+    return row;
+  }
+
+  function resetPassword() {
+    if (!B.signedIn()) { u.toast('That link has expired. Ask for a new one.'); return signIn(); }
+    const pass = el('input', { type: 'password', minlength: '6', autocomplete: 'new-password', id: 'rp-pass' });
+    const msg = el('p', { class: 'acct-msg', role: 'status' }), btn = el('button', { class: 'btn primary big', type: 'submit' }, 'Save new password');
+    shell('New password', el('div', { class: 'acct-card' }, el('h1', {}, 'Choose a new password'),
+      el('form', { class: 'acct-form', novalidate: true, onsubmit: async e => {
+        e.preventDefault();
+        if (pass.value.length < 6) { msg.textContent = 'At least 6 characters, please.'; msg.classList.add('err'); return; }
+        btn.disabled = true;
+        try { await B.setPassword(pass.value); u.toast('Password changed'); location.hash = '#/account'; }
+        catch (err) { btn.disabled = false; msg.textContent = err.message; msg.classList.add('err'); }
+      } }, el('label', { for: 'rp-pass' }, 'New password'), pass, btn, msg)));
+    pass.focus();
+  }
+
+  /* editing: a published page { id, key, page }. draft: a draft saved in the account { id, data } */
+  async function editor(tplId, editing, draft) {
     await loadAll();
     const T = KS.templates[tplId]; if (!T) return (location.hash = '#/');
     if (teardown) { teardown(); teardown = null; }
@@ -291,10 +414,13 @@
 
     const blankMusic = () => Object.assign({ type: 'none', id: '', src: '', name: '' }, u.clone(T.defaultMusic || {}));
     const draftKey = 'ks.draft.' + T.id;
+    const cloud = !editing && B.configured() && B.signedIn(); // signed in: drafts (with photos and songs) are saved to the account
+    let draftId = draft ? draft.id : '', fromDevice = false;
     let data, music, restored = false;
     if (editing) { data = Object.assign(u.clone(T.sample), editing.page.d || {}); music = Object.assign(blankMusic(), editing.page.m || {}); }
+    else if (draft) { data = Object.assign(u.clone(T.sample), draft.data.d || {}); music = Object.assign(blankMusic(), draft.data.m || {}); }
     else {
-      try { const dr = JSON.parse(localStorage.getItem(draftKey) || 'null'); if (dr && dr.d) { data = Object.assign(u.clone(T.sample), dr.d); music = Object.assign(blankMusic(), dr.m || {}); restored = true; } } catch (_) {}
+      try { const dr = JSON.parse(localStorage.getItem(draftKey) || 'null'); if (dr && dr.d) { data = Object.assign(u.clone(T.sample), dr.d); music = Object.assign(blankMusic(), dr.m || {}); restored = true; fromDevice = cloud; } } catch (_) {}
       if (!data) { data = u.clone(T.sample); music = blankMusic(); }
     }
 
@@ -306,10 +432,32 @@
     const send = () => { if (ready && !live) iframe.contentWindow.postMessage({ type: 'ks-render', t: T.id, d: data, m: music, live: false }, '*'); };
     const onMsg = e => { if (e.source === iframe.contentWindow && e.data && e.data.type === 'ks-ready') { ready = true; send(); } };
     addEventListener('message', onMsg);
+    /* drafts: saved a moment after each change, to the account when signed in, otherwise to this browser */
+    const status = el('small', {}, editing ? 'editing a published page' : cloud ? (draft ? 'draft saved to your account' : 'draft saves to your account') : 'draft saved on this device');
+    let dirty = false, saving = false, again = false;
+    const saveLocal = () => { try { localStorage.setItem(draftKey, JSON.stringify({ d: stripBlobs(data), m: stripBlobs(music) })); } catch (_) {} };
+    async function saveCloud() {
+      if (saving) { again = true; return; }
+      saving = true; dirty = false; status.textContent = 'Saving…';
+      try {
+        if (!draftId) { draftId = B.newId(); if (location.hash.startsWith('#/new/')) history.replaceState(null, '', '#/draft/' + draftId); }
+        const found = await B.uploadBlobMap({ d: data, m: music }, 'drafts/' + draftId);
+        B.swapUrls(data, found); B.swapUrls(music, found); // photos now live online, so the draft keeps them
+        if (editing) { saving = false; return; } // published meanwhile: no draft needed any more
+        await B.saveDraft(draftId, { v: 1, t: T.id, d: stripBlobs(data), m: stripBlobs(music) });
+        if (fromDevice) { try { localStorage.removeItem(draftKey); } catch (_) {} fromDevice = false; }
+        status.textContent = 'Saved to your account';
+      } catch (e) { dirty = true; status.textContent = 'Not saved yet: ' + (e.message || 'try again'); }
+      saving = false;
+      if (again && !editing) { again = false; saveCloud(); }
+    }
+    const saveNow = () => { clearTimeout(saveT); if (!dirty || editing) return; if (cloud) saveCloud(); else { dirty = false; saveLocal(); } };
     const changed = () => {
       clearTimeout(timer); timer = setTimeout(send, 220);
-      if (!editing) { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(draftKey, JSON.stringify({ d: stripBlobs(data), m: stripBlobs(music) })); } catch (_) {} }, 700); }
+      if (!editing) { dirty = true; clearTimeout(saveT); saveT = setTimeout(saveNow, cloud ? 1500 : 700); }
     };
+    const onLeave = e => { if (cloud && (dirty || saving)) { saveNow(); e.preventDefault(); e.returnValue = ''; } };
+    addEventListener('beforeunload', onLeave);
 
     /* layout */
     const formHost = el('div'), musicHost = el('div');
@@ -327,18 +475,26 @@
     const pubBtn = el('button', { type: 'button', class: 'btn primary', onclick: () => publish() }, editing ? 'Save changes' : 'Publish');
     const root = el('div', { class: 'ed', 'data-tab': 'edit' },
       el('div', { class: 'ed-top' },
-        el('button', { type: 'button', class: 'btn ghost', onclick: () => { if (confirm('Leave the editor? Your work is saved as a draft on this device (photos and songs will need adding again).')) location.hash = '#/'; } }, '← Back'),
-        el('div', { class: 'ttl' }, T.name, el('small', {}, editing ? 'editing a published page' : 'draft saved automatically')), tabs, pubBtn),
+        el('button', { type: 'button', class: 'btn ghost', onclick: () => {
+          if (editing ? confirm('Leave the editor? Changes you have not saved will be lost.') : cloud || confirm('Leave the editor? Your work is saved as a draft on this device (photos and songs will need adding again).')) location.hash = B.signedIn() ? '#/account' : '#/';
+        } }, '← Back'),
+        el('div', { class: 'ttl' }, T.name, status), tabs, pubBtn),
       el('div', { class: 'ed-main' },
         el('div', { class: 'ed-form' },
-          restored ? el('div', { class: 'draftbar' }, el('span', {}, 'Restored your last draft.'), el('button', { class: 'link', type: 'button', onclick: () => { try { localStorage.removeItem(draftKey); } catch (_) {} editor(tplId); } }, 'Start over')) : null,
+          restored || draft ? el('div', { class: 'draftbar' }, el('span', {}, draft ? 'Carrying on with your draft.' : 'Restored your last draft.'), el('button', { class: 'link', type: 'button', onclick: () => {
+            if (!confirm('Start over from the sample? This draft will be deleted.')) return;
+            dirty = false; clearTimeout(saveT); try { localStorage.removeItem(draftKey); } catch (_) {}
+            if (draftId) B.deleteDraft(draftId, { d: data, m: music }).catch(() => {});
+            if (location.hash === '#/new/' + T.id) editor(tplId); else location.hash = '#/new/' + T.id;
+          } }, 'Start over')) : null,
           formHost, el('details', { class: 'sec' }, el('summary', {}, 'Music'), el('div', { class: 'secbody' }, musicHost))),
         el('div', { class: 'ed-pv' }, el('div', { class: 'pvbar' }, dev, liveBtn, el('button', { class: 'btn ghost', type: 'button', onclick: () => { ready && (live = false, liveBtn.textContent = '▶ Play as a visitor', send()); } }, '↻ Refresh')), el('div', { class: 'pvstage' }, frame))));
     app().textContent = ''; app().append(root);
 
     KS.buildEditor(formHost, T.schema, data, changed, { emoji: !!T.emoji });
     const me = KS.buildMusicEditor(musicHost, music, changed);
-    teardown = () => { removeEventListener('message', onMsg); clearTimeout(timer); clearTimeout(saveT); me.stop(); };
+    teardown = () => { removeEventListener('message', onMsg); removeEventListener('beforeunload', onLeave); clearTimeout(timer); saveNow(); me.stop(); };
+    if (fromDevice) { dirty = true; saveNow(); } // a draft from before signing in moves into the account
 
     /* publishing */
     async function publish() {
@@ -356,6 +512,8 @@
       if (payload.m.type === 'library' && !KS.trackOf(payload.m.id)) payload.m = { type: 'none' };
       if (payload.m.type === 'none') payload.m = { type: 'none' };
 
+      clearTimeout(saveT);
+      for (let i = 0; saving && i < 150; i++) await new Promise(r => setTimeout(r, 100)); // let a draft save finish first
       const bar = el('i'), msg = el('p', {}, 'Getting things ready…');
       show(el('h2', {}, editing ? 'Saving your page…' : 'Publishing…'), msg, el('div', { class: 'bar' }, bar));
       try {
@@ -365,8 +523,12 @@
         msg.textContent = 'Saving…'; bar.style.width = '92%';
         if (editing) await B.updatePage(id, key, out); else await B.createPage(id, key, out);
         bar.style.width = '100%';
-        B.rememberPage({ id, key, t: T.id, title: T.title ? T.title(out.d) : T.name, created: Date.now() });
-        if (!editing) { try { localStorage.removeItem(draftKey); } catch (_) {} editing = { id, key, page: out }; pubBtn.textContent = 'Save changes'; }
+        if (key) B.rememberPage({ id, key, t: T.id, title: T.title ? T.title(out.d) : T.name, created: Date.now(), claimed: B.signedIn() ? B.user().id : undefined });
+        if (!editing) {
+          try { localStorage.removeItem(draftKey); } catch (_) {} editing = { id, key, page: out }; pubBtn.textContent = 'Save changes'; status.textContent = 'editing a published page'; dirty = false;
+          if (draftId) { B.deleteDraft(draftId, null, true).catch(() => {}); draftId = ''; } // published now: the draft is done, its photos stay (the page uses them)
+          if (/^#\/(new|draft)\//.test(location.hash)) history.replaceState(null, '', '#/edit/' + id);
+        }
         // published pictures now have permanent addresses: use them in the editor from here on
         Object.keys(out.d).forEach(k => { if (JSON.stringify(out.d[k]) !== JSON.stringify(data[k]) && hasBlobs(data[k])) data[k] = out.d[k]; });
         if (out.m && out.m.src && u.isBlobUrl(music.src)) music.src = out.m.src;
@@ -378,8 +540,9 @@
             el('a', { class: 'btn', href: link, target: '_blank', rel: 'noopener' }, 'Open it'),
             navigator.share ? el('button', { class: 'btn', type: 'button', onclick: () => navigator.share({ title: document.title, url: link }).catch(() => {}) }, 'Share…') : null,
             el('button', { class: 'btn ghost', type: 'button', onclick: close }, 'Keep editing'),
-            el('button', { class: 'btn ghost', type: 'button', onclick: () => { close(); location.hash = '#/'; } }, 'Done')),
-          el('p', { class: 'help', style: 'margin-top:14px' }, 'You can come back and fix or change anything from "Your pages" on the home screen, on this device.'));
+            el('button', { class: 'btn ghost', type: 'button', onclick: () => { close(); location.hash = B.signedIn() ? '#/account' : '#/'; } }, 'Done')),
+          B.signedIn() ? el('p', { class: 'help', style: 'margin-top:14px' }, 'Saved to your account. Change it any time from your dashboard, on any device.')
+            : el('p', { class: 'help', style: 'margin-top:14px' }, 'To edit it later from any device, ', el('a', { href: '#/account', target: '_blank', rel: 'noopener' }, 'create a free account'), '. This page moves into it automatically. Without an account, you can only edit it from this browser.'));
       } catch (e) {
         show(el('h2', {}, 'That did not work'), el('p', { class: 'err' }, e.message || 'Something went wrong.'), el('p', {}, 'Your work is still here. Check your connection and try again.'),
           el('div', { class: 'dact' }, el('button', { class: 'btn primary', type: 'button', onclick: () => { close(); publish(); } }, 'Try again'), el('button', { class: 'btn ghost', type: 'button', onclick: close }, 'Close')));
@@ -391,11 +554,19 @@
     const h = location.hash.replace(/^#\/?/, '').split('/');
     await loadAll();
     if (h[0] === 'new' && KS.templates[h[1]]) return editor(h[1]);
+    if (h[0] === 'account') return account();
+    if (h[0] === 'reset') return resetPassword();
+    if (h[0] === 'designs') { home(); const c = $('#lp-collection'); if (c) c.scrollIntoView(); return; }
+    if (h[0] === 'draft' && h[1]) {
+      if (!B.signedIn()) { u.toast('Sign in to open your drafts.'); location.hash = '#/account'; return; }
+      try { const d = await B.getDraft(h[1]); if (!d || !KS.templates[d.t]) throw new Error('missing'); return editor(d.t, null, { id: h[1], data: d }); }
+      catch (_) { u.toast('Could not open that draft.'); location.hash = '#/account'; return; }
+    }
     if (h[0] === 'edit' && h[1]) {
       const rec = B.myPages().find(p => p.id === h[1]);
-      if (!rec) { u.toast('You can only edit pages made on this device.'); location.hash = '#/'; return; }
-      try { const page = await B.getPage(rec.id); if (!page) throw new Error('missing'); return editor(page.t, { id: rec.id, key: rec.key, page }); }
-      catch (_) { u.toast('Could not load that page right now.'); location.hash = '#/'; return; }
+      if (!rec && !B.signedIn()) { u.toast('Sign in to edit your pages.'); location.hash = '#/account'; return; }
+      try { const page = await B.getPage(h[1]); if (!page) throw new Error('missing'); return editor(page.t, { id: h[1], key: rec ? rec.key : '', page }); }
+      catch (_) { u.toast('Could not load that page right now.'); location.hash = B.signedIn() ? '#/account' : '#/'; return; }
     }
     home();
   }
@@ -407,8 +578,11 @@
     if (q.has('preview')) return previewMode();
     u.font('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap');
     document.body.classList.add('is-app');
-    addEventListener('hashchange', route);
-    route();
+    // coming back from an email link (confirm account, reset password)
+    B.takeSessionFromUrl().then(r => {
+      if (r && r.error) { u.toast(r.error); history.replaceState(null, '', location.pathname + location.search + '#/account'); }
+      else if (r) history.replaceState(null, '', location.pathname + location.search + (r.type === 'recovery' ? '#/reset' : '#/account'));
+    }, () => {}).then(() => { addEventListener('hashchange', route); route(); });
   }
   boot();
 })();

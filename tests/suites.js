@@ -242,6 +242,109 @@ window.SUITES = async () => {
     H.ok(/Supabase|offline/.test(msg), 'message was: ' + msg);
   });
 
+  /* ---------- accounts (a pretend Supabase, so nothing real is touched) ---------- */
+  const fakeSupabase = (w, pages, drafts) => {
+    const calls = [], saved = {};
+    const json = (body, status) => Promise.resolve(new w.Response(body == null ? null : JSON.stringify(body), { status: status || 200, headers: { 'Content-Type': 'application/json' } }));
+    w.fetch = (url, opts) => {
+      const path = String(url).replace(/^https?:\/\/[^/]+/, ''), auth = ((opts && opts.headers) || {}).Authorization || '';
+      calls.push({ path, auth, body: opts && opts.body });
+      if (path.startsWith('/auth/v1/token')) return json({ access_token: 'tok-1', refresh_token: 'ref-1', expires_in: 3600, user: { id: 'u1', email: 'me@example.com' } });
+      if (path === '/rest/v1/rpc/claim_page') return json(true);
+      if (path === '/rest/v1/rpc/my_pages') return json(pages);
+      if (path === '/rest/v1/rpc/delete_my_page' || path === '/rest/v1/rpc/delete_draft') return json(true);
+      if (path === '/rest/v1/rpc/my_drafts') return json(drafts || []);
+      if (path === '/rest/v1/rpc/save_draft') { const b = JSON.parse(opts.body); saved[b.p_id] = b.p_data; return json(true); }
+      if (path === '/rest/v1/rpc/get_draft') return json(saved[JSON.parse(opts.body).p_id] || null);
+      if (path.startsWith('/storage/v1/object/list/')) return json([{ id: 'f1', name: 'old-photo.jpg' }]);
+      if (path.startsWith('/storage/v1/object/media/')) return json({ Key: path });
+      if (path === '/storage/v1/object/media' && opts.method === 'DELETE') return json(JSON.parse(opts.body).prefixes.map(n => ({ name: n })));
+      return json(null, 404);
+    };
+    calls.saved = saved; return calls;
+  };
+  const cleanAccount = w => { ['ks.session', 'ks.pages'].forEach(k => w.localStorage.removeItem(k)); };
+
+  add('accounts: sign in moves this browser’s pages into the account, and the dashboard lists them', async () => {
+    const { w, d } = await H.open('../index.html#/');
+    if (!w.KS.backend.configured()) return { skip: 'config.js has no Supabase keys' };
+    cleanAccount(w);
+    w.KS.backend.rememberPage({ id: 'localpg01', key: 'k'.repeat(28), t: 'birthday', title: 'Old one', created: Date.now() });
+    const now = new Date().toISOString(), photo = w.KS.backend.publicUrl('abcdefgh02/1-x.jpg');
+    const calls = fakeSupabase(w, [{ id: 'abcdefgh01', data: { t: 'birthday', d: w.KS.templates.birthday.sample }, created_at: now, updated_at: now },
+                                   { id: 'abcdefgh02', data: { t: 'wedding', d: Object.assign({}, w.KS.templates.wedding.sample, { photo }) }, created_at: now, updated_at: now }],
+                                  [{ id: 'draft00001', data: { t: 'garden', d: w.KS.templates.garden.sample }, created_at: now, updated_at: now }]);
+    w.location.hash = '#/account';
+    const email = await H.until(() => d.querySelector('#ac-email'), 5000, 'the sign-in form');
+    H.ok(/move into your account/.test(d.body.textContent), 'no note about pages on this browser');
+    const over0 = d.documentElement.scrollWidth - w.innerWidth;
+    H.ok(over0 <= 1, `sign-in scrolls sideways on a phone by ${over0}px (screen ${w.innerWidth}px)`);
+    email.value = 'me@example.com'; d.querySelector('#ac-pass').value = 'secret123';
+    d.querySelector('.acct-form').requestSubmit();
+    await H.until(() => d.querySelectorAll('.dash-row').length === 3, 5000, 'a draft and two pages on the dashboard');
+    H.ok(d.querySelector('a[href="#/draft/draft00001"]'), 'the draft has no Continue button');
+    const rows = d.querySelectorAll('.dash-row a[href^="#/edit/"]').length === 2 && [...d.querySelectorAll('.dash-row')].filter(r => r.querySelector('a[href^="#/edit/"]'));
+    const claim = calls.find(c => c.path === '/rest/v1/rpc/claim_page');
+    H.ok(claim && /localpg01/.test(claim.body) && claim.auth === 'Bearer tok-1', 'the page on this browser was not claimed with the sign-in');
+    H.ok(calls.find(c => c.path === '/rest/v1/rpc/my_pages').auth === 'Bearer tok-1', 'the dashboard did not ask as the signed-in person');
+    H.ok(rows[0].querySelector('a[href="#/edit/abcdefgh01"]'), 'no Edit button');
+    const over = d.documentElement.scrollWidth - w.innerWidth;
+    H.ok(over <= 1, `dashboard scrolls sideways on a phone by ${over}px`);
+    w.confirm = () => true;
+    [...rows[1].querySelectorAll('button')].find(b => b.textContent === 'Delete').click();
+    await H.until(() => d.querySelectorAll('.dash-row').length === 2, 3000, 'the deleted page to go');
+    const del = await H.until(() => calls.find(c => c.path === '/storage/v1/object/media' && c.body), 3000, 'the photos to be deleted');
+    const gone = JSON.parse(del.body).prefixes;
+    H.ok(gone.includes('abcdefgh02/1-x.jpg') && gone.includes('abcdefgh02/old-photo.jpg'), 'deleted files were: ' + gone.join(', '));
+    [...d.querySelectorAll('button')].find(b => b.textContent === 'Sign out').click();
+    await H.until(() => !w.KS.backend.signedIn(), 3000, 'signing out');
+    cleanAccount(w);
+    return '1 draft, 2 pages, 1 deleted with its photos';
+  });
+
+  add('accounts: a signed-in draft saves to the account with its photo, and opens again', async () => {
+    const { w, d } = await H.open('../index.html#/');
+    if (!w.KS.backend.configured()) return { skip: 'config.js has no Supabase keys' };
+    cleanAccount(w); w.localStorage.removeItem('ks.draft.birthday');
+    const calls = fakeSupabase(w, [], []);
+    w.localStorage.setItem('ks.session', JSON.stringify({ access_token: 'tok-1', refresh_token: 'r', expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: 'u1', email: 'me@example.com' } }));
+    w.location.hash = '#/new/birthday';
+    const input = await H.until(() => d.querySelector('.ed-form input[type=text]'), 8000, 'the editor');
+    H.ok(/account/.test(d.querySelector('.ttl small').textContent), 'editor does not say drafts go to the account');
+    // a photo the person just added (as the photo picker does), then a typed change
+    const blobUrl = w.KS.util.addBlob(new w.Blob(['x'], { type: 'image/jpeg' }), 'jpg', 'me.jpg');
+    input.value = 'Hello draft'; input.dispatchEvent(new w.Event('input'));
+    const saveCall = () => calls.find(c => c.path === '/rest/v1/rpc/save_draft');
+    await H.until(saveCall, 6000, 'the draft to save');
+    const id = (w.location.hash.match(/^#\/draft\/(\w+)$/) || [])[1];
+    H.ok(id && calls.saved[id], 'address did not change to the draft: ' + w.location.hash);
+    H.ok(JSON.stringify(calls.saved[id]).includes('Hello draft'), 'typed text not in the saved draft');
+    // the uploader swaps photos for their online address inside the draft
+    const map = await w.KS.backend.uploadBlobMap({ p: blobUrl }, 'drafts/' + id);
+    H.ok(calls.some(c => c.path.startsWith('/storage/v1/object/media/drafts/' + id + '/')), 'photo not uploaded into the draft folder');
+    const obj = { p: blobUrl }; w.KS.backend.swapUrls(obj, map); H.ok(obj.p.startsWith(w.KS.backend.publicUrl('drafts/')), 'photo address not swapped');
+    // open it again from the dashboard link
+    w.location.hash = '#/account'; await H.until(() => d.querySelector('.dash-head'), 4000, 'the dashboard');
+    w.location.hash = '#/draft/' + id;
+    await H.until(() => d.querySelector('.draftbar') && /Carrying on/.test(d.querySelector('.draftbar').textContent), 6000, 'the draft to open again');
+    w.location.hash = '#/'; await H.sleep(200);
+    cleanAccount(w);
+    return 'draft ' + id;
+  }, 30000);
+
+  add('accounts: an email link signs you in and opens the dashboard', async () => {
+    const { w, d } = await H.open('../index.html?preview=1');
+    if (!w.KS.backend.configured()) return { skip: 'config.js has no Supabase keys' };
+    cleanAccount(w); fakeSupabase(w, []);
+    w.history.replaceState(null, '', w.location.pathname + '#access_token=tok-9&refresh_token=r9&expires_in=3600&type=signup');
+    w.fetch = ((f) => (url, o) => String(url).includes('/auth/v1/user') ? Promise.resolve(new w.Response(JSON.stringify({ id: 'u9', email: 'x@y.z' }), { status: 200 })) : f(url, o))(w.fetch);
+    const r = await w.KS.backend.takeSessionFromUrl();
+    H.eq(r.type, 'signup', 'link type');
+    H.eq(w.KS.backend.user().email, 'x@y.z', 'signed-in email');
+    H.ok(w.KS.backend.session().access_token === 'tok-9', 'session not saved');
+    cleanAccount(w);
+  });
+
   /* ---------- smoothness ---------- */
   for (const id of CUTE) add(`${id}: animates smoothly`, async () => {
     const { w, d } = await H.render(id);
