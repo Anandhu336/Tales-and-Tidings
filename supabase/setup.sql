@@ -147,3 +147,6 @@ drop policy if exists "own media read" on storage.objects;
 create policy "own media read" on storage.objects for select to authenticated using (bucket_id = 'media' and owner_id = (select auth.uid())::text);
 drop policy if exists "own media delete" on storage.objects;
 create policy "own media delete" on storage.objects for delete to authenticated using (bucket_id = 'media' and owner_id = (select auth.uid())::text);
+
+-- Tell the API about the new tables and functions straight away.
+notify pgrst, 'reload schema';
