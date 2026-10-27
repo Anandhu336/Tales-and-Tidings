@@ -82,5 +82,14 @@
     document.querySelectorAll('a[data-ig]').forEach(a => { a.href = igLink(); a.target = '_blank'; a.rel = 'noopener'; });
   }
 
-  header(); footer(); floatingWa(); wireWaLinks();
+  /* each section below the top drifts up softly the first time it scrolls into view.
+     Only with IntersectionObserver and without "reduce motion", so the page never stays hidden. */
+  function reveal() {
+    if (!('IntersectionObserver' in window) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+    const els = document.querySelectorAll('main > section:not(.bb-hero) > .bb-wrap');
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
+    els.forEach(el => { el.classList.add('bb-reveal'); io.observe(el); });
+  }
+
+  header(); footer(); floatingWa(); wireWaLinks(); reveal();
 })();

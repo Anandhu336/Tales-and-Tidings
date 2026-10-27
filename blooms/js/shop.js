@@ -1,4 +1,4 @@
-/* Blooms by Bincy home: the featured card on the photo, the category icons, the colour-story chips,
+/* Blooms by Bincy home: the photo banner at the top, the category icons, the colour-story chips,
    the sort menu, the bouquet grid and the wedding-date checker. Everything comes from blooms/shop-data.js.
    Needs js/site.js first (BloomsSite). */
 (function () {
@@ -12,13 +12,57 @@
   const price = p => 'From ' + rupees(p.price) + (p.per ? ' <small>' + esc(p.per) + '</small>' : '');
   const ext = ' target="_blank" rel="noopener"';
 
-  /* ---------- the card on the big photo ---------- */
-  const hero = products.find(p => p.featured) || products[0];
-  if (hero && $('bb-specimen')) $('bb-specimen').innerHTML =
-    '<p class="bb-no">' + no(hero.no) + ' · ' + esc(hero.tag || hero.label) + '</p>' +
-    '<h3>' + esc(hero.name) + '</h3>' +
-    '<div class="bb-row">' + dots(hero.colours) + '<span>' + price(hero) + '</span></div>' +
-    '<div class="bb-row bb-row-link"><a href="' + orderLink(hero) + '"' + ext + '>View &amp; personalise →</a></div>';
+  /* ---------- the big photos at the top ---------- */
+  const slides = S.heroSlides || [];
+  const wide = name => ASSETS + 'photos/' + name + '-wide-800.jpg 800w, ' + ASSETS + 'photos/' + name + '-wide-1600.jpg 1600w';
+  // the page starts with the bride photo (so it shows at once); if shop-data.js lists a different first photo, use that
+  const firstImg = document.querySelector('.bb-hero-photos > img');
+  if (firstImg && slides[0]) {
+    if (!firstImg.src.includes('/' + slides[0].image + '-wide-')) {
+      firstImg.srcset = wide(slides[0].image);
+      firstImg.src = ASSETS + 'photos/' + slides[0].image + '-wide-800.jpg';
+      firstImg.alt = slides[0].alt || '';
+    }
+    if (slides[0].focus) firstImg.style.objectPosition = slides[0].focus;
+  }
+  heroShow();
+
+  /* more than one photo: fade between them every 6 seconds. The first photo is already in the page (it loads first);
+     the others are added here. Waits while the tab is hidden or the photo is off screen; still for "reduce motion". */
+  function heroShow() {
+    const frame = document.querySelector('.bb-hero-photos'); if (!frame || slides.length < 2) return;
+    const first = frame.querySelector('img');
+    const imgs = [first].concat(slides.slice(1).map(s => {
+      const img = document.createElement('img');
+      img.className = 'bb-slide'; img.alt = s.alt || ''; img.width = 1600; img.height = 1000; img.loading = 'lazy'; img.decoding = 'async';
+      img.src = ASSETS + 'photos/' + s.image + '-wide-800.jpg';
+      img.srcset = wide(s.image);
+      img.sizes = '100vw';
+      if (s.focus) img.style.objectPosition = s.focus;
+      img.setAttribute('aria-hidden', 'true');
+      return img;
+    }));
+    // put the added photos right after the first one, in order
+    imgs.slice(1).reverse().forEach(img => first.after(img));
+    const nav = document.createElement('div');
+    nav.className = 'bb-slide-dots';
+    nav.innerHTML = slides.map((s, i) => '<button type="button" aria-label="Photo ' + (i + 1) + ' of ' + slides.length + '"' + (i ? '' : ' aria-current="true"') + '></button>').join('');
+    frame.append(nav);
+    let at = 0, seen = true, timer = 0;
+    const show = i => {
+      const was = imgs[at]; at = (i + slides.length) % slides.length; if (was === imgs[at]) return;
+      // the old photo stays visible underneath while the new one fades in on top, then steps away
+      imgs.forEach(img => img.classList.remove('was-on'));
+      was.classList.add('was-on'); setTimeout(() => was.classList.remove('was-on'), 1300);
+      imgs.forEach((img, k) => { img.classList.toggle('is-on', k === at); img.setAttribute('aria-hidden', String(k !== at)); });
+      nav.querySelectorAll('button').forEach((b, k) => b.toggleAttribute('aria-current', k === at));
+    };
+    const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const start = () => { clearInterval(timer); if (!still) timer = setInterval(() => { if (seen && !document.hidden) show(at + 1); }, 6000); };
+    nav.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; show([...nav.children].indexOf(b)); start(); });
+    if ('IntersectionObserver' in window) new IntersectionObserver(es => { seen = es[0].isIntersecting; }).observe(frame);
+    start();
+  }
 
   /* ---------- what is showing ---------- */
   const q = new URLSearchParams(location.search);

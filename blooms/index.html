@@ -14,39 +14,36 @@
 <link rel="icon" href="../assets/blooms/icons/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../assets/blooms/icons/apple-touch-icon.png">
 <link rel="manifest" href="../assets/blooms/icons/site.webmanifest">
-<meta name="theme-color" content="#5B7895">
+<meta name="theme-color" content="#FBF7F2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Montserrat:wght@400;500;600&family=Inter:wght@500;600&display=swap">
-<link rel="preload" as="image" href="../assets/blooms/photos/lavender-cascade-hero-560.jpg" imagesrcset="../assets/blooms/photos/lavender-cascade-hero-560.jpg 560w, ../assets/blooms/photos/lavender-cascade-hero-1120.jpg 1120w" imagesizes="(min-width: 981px) 460px, 86vw">
+<link rel="preload" as="image" href="../assets/blooms/photos/sunset-bride-wide-800.jpg" imagesrcset="../assets/blooms/photos/sunset-bride-wide-800.jpg 800w, ../assets/blooms/photos/sunset-bride-wide-1600.jpg 1536w" imagesizes="100vw">
 <link rel="stylesheet" href="../assets/blooms/brand.css?v=1">
 <link rel="stylesheet" href="../assets/tb/chrome.css?v=2">
-<link rel="stylesheet" href="css/blooms.css?v=4">
+<link rel="stylesheet" href="css/blooms.css?v=13">
 </head>
 <body class="blooms">
 <a class="bb-skip" href="#main">Skip to content</a>
-<div class="bb-announce">Now taking orders for the wedding season · Handmade in Adimali, Idukki · <a data-wa="" href="#">Order on WhatsApp</a></div>
+<div class="bb-announce">Now taking orders for the wedding season <span aria-hidden="true">✦</span> Handmade in Adimali, Idukki <span aria-hidden="true">✦</span> <a data-wa="" href="#">Order on WhatsApp</a></div>
 <header id="bb-header"></header>
 
 <main id="main">
-  <!-- hero: the photo and its little card come from the bouquet marked featured in shop-data.js -->
+  <!-- hero: a full-width photo banner; the photos (and their order) come from heroSlides in shop-data.js -->
   <section class="bb-hero">
-    <img class="bb-seedbloom" src="../assets/blooms/art/seedbloom.svg" alt="" width="640" height="300">
+    <div class="bb-hero-photos">
+      <img class="bb-slide is-on" src="../assets/blooms/photos/sunset-bride-wide-800.jpg"
+           srcset="../assets/blooms/photos/sunset-bride-wide-800.jpg 800w, ../assets/blooms/photos/sunset-bride-wide-1600.jpg 1536w"
+           sizes="100vw" width="1536" height="1024" fetchpriority="high"
+           alt="A bride in a lace gown holding a cascade bouquet of ivory and blush flowers at sunset">
+    </div>
     <div class="bb-wrap bb-hero-in">
-      <div>
+      <div class="bb-hero-text">
         <p class="bb-eyebrow">Handmade wedding bouquets · Kerala</p>
         <h1>Every love story deserves to <em>bloom</em></h1>
         <p class="bb-lead">Bridal, cascade and round bouquets, made by hand for Kerala Christian weddings, in the colours of your saree, your church and your day.</p>
         <div class="bb-actions"><a href="#shop" class="bb-btn bb-btn-solid">Shop the collection</a><a href="#date" class="bb-btn bb-btn-ghost">Check your wedding date</a></div>
         <div class="bb-trust"><div><b>100%</b>handmade</div><div><b>Your</b>colours, matched</div><div><b>Adimali</b>&amp; across Idukki</div></div>
-      </div>
-      <div class="bb-frame">
-        <img src="../assets/blooms/photos/lavender-cascade-hero-560.jpg"
-             srcset="../assets/blooms/photos/lavender-cascade-hero-560.jpg 560w, ../assets/blooms/photos/lavender-cascade-hero-1120.jpg 1120w"
-             sizes="(min-width: 981px) 460px, 86vw" width="560" height="720" fetchpriority="high"
-             alt="The Lavender Cascade: a handmade cascade bouquet with plum and ivory roses, lavender and white dahlias">
-        <div class="bb-specimen" id="bb-specimen"></div>
-        <span class="bb-vert" aria-hidden="true">HANDMADE IN ADIMALI · KERALA</span>
       </div>
     </div>
   </section>
@@ -56,7 +53,7 @@
 
   <section class="bb-collection" id="shop"><div class="bb-wrap">
     <div class="bb-head">
-      <div><p class="bb-eyebrow">The collection</p><h2>Bouquets for every part of your day</h2></div>
+      <div><p class="bb-eyebrow">The collection</p><h2>Bouquets for every part of your <em>day</em></h2></div>
       <label class="bb-sort"><span class="bb-sr">Sort bouquets</span>
         <select id="bb-sort">
           <option value="featured">Sort: Featured</option>
@@ -72,7 +69,7 @@
   </div></section>
 
   <section class="bb-datecheck" id="date"><div class="bb-wrap">
-    <div><p class="bb-eyebrow">Limited bouquets per day</p><h2>Is your wedding date still open?</h2><p>Every bouquet is made by hand, so we only take a few orders for each day.</p></div>
+    <div><p class="bb-eyebrow">Limited bouquets per day</p><h2>Is your wedding date still <em>open?</em></h2><p>Every bouquet is made by hand, so we only take a few orders for each day.</p></div>
     <div>
       <form id="bb-date-form" novalidate>
         <label class="bb-sr" for="bb-date">Wedding date</label>
@@ -84,9 +81,9 @@
     </div>
   </div></section>
 
-  <section class="bb-steps" id="how"><div class="bb-wrap">
+  <section class="bb-steps" id="how"><div class="bb-wrap bb-center">
     <p class="bb-eyebrow">How to order</p>
-    <h2>Your bouquet in three simple steps</h2>
+    <h2>Your bouquet in three simple <em>steps</em></h2>
     <ol>
       <li><h3>Choose your style</h3><p>Pick a bouquet from the collection, or tell us the style you have in mind.</p></li>
       <li><h3>Share your colours</h3><p>Send your wedding date, church and a photo of your saree or gown. We’ll match the flowers.</p></li>
@@ -98,7 +95,7 @@
     <div class="bb-seedrow"><img src="../assets/blooms/art/seedstory.svg" alt="" width="640" height="300" loading="lazy"></div>
     <div>
       <p class="bb-eyebrow">Our story</p>
-      <h2>From a seed to a bloom</h2>
+      <h2>From a seed to a <em>bloom</em></h2>
       <p>Blooms by Bincy began with a simple dream: to make every bride’s bouquet as special as her love story. Every bouquet starts as a little idea, your colours, your dress, your day, and grows, flower by flower, into something made just for you.</p>
       <p>Each one is handcrafted in Adimali, Kerala.</p>
       <p class="bb-sig">— Bincy</p>
@@ -106,7 +103,7 @@
   </div></section>
 
   <section class="bb-ig"><div class="bb-wrap">
-    <div class="bb-head"><div><p class="bb-eyebrow">@blooms_by_bincy</p><h2>Follow our blooms on Instagram</h2></div><a data-ig href="https://www.instagram.com/blooms_by_bincy/" class="bb-btn bb-btn-ghost">Follow us</a></div>
+    <div class="bb-head"><div><p class="bb-eyebrow">@blooms_by_bincy</p><h2>Follow our blooms on <em>Instagram</em></h2></div><a data-ig href="https://www.instagram.com/blooms_by_bincy/" class="bb-btn bb-btn-ghost">Follow us</a></div>
     <div class="bb-ig-row">
       <a data-ig href="https://www.instagram.com/blooms_by_bincy/"><img src="../assets/blooms/photos/ig-1.jpg" width="640" height="800" loading="lazy" alt="The Lavender Cascade bouquet on Instagram"></a>
       <a data-ig href="https://www.instagram.com/blooms_by_bincy/"><img src="../assets/blooms/photos/ig-2.jpg" width="360" height="450" loading="lazy" alt="Instagram post: how to order your wedding bouquet in three steps"></a>
@@ -117,9 +114,9 @@
 </main>
 
 <footer id="bb-footer"></footer>
-<script src="shop-data.js?v=2"></script>
+<script src="shop-data.js?v=5"></script>
 <script src="../assets/tb/chrome.js?v=4"></script>
-<script src="js/site.js?v=4"></script>
-<script src="js/shop.js?v=1"></script>
+<script src="js/site.js?v=5"></script>
+<script src="js/shop.js?v=5"></script>
 </body>
 </html>

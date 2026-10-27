@@ -23,6 +23,21 @@ window.BLOOMS = {
     // '2026-12-25',
   ],
 
+  /* ---------- the big photos at the top ----------
+     The photos fill the whole top of the page and fade from one to the next every few seconds
+     (only the first shows if there is one). On phones the photo sits above the heading.
+     image:  the photo's name in assets/blooms/photos/. Each photo needs two sizes there, wide like a landscape photo:
+             NAME-wide-800.jpg (800 pixels wide) and NAME-wide-1600.jpg (about 1600 wide).
+     alt:    a short description for people using screen readers
+     focus:  optional, the part of the photo to keep in view when it is cropped, across then down. Example: '60% 40%'
+     Only use photos Bincy took or has a licence/permission for. */
+  heroSlides: [
+    { image: 'sunset-bride', focus: '55% 50%',
+      alt: 'A bride in a lace gown holding a cascade bouquet of ivory and blush flowers at sunset' },
+    { image: 'sunset-hands', focus: '50% 50%',
+      alt: 'A bride and groom holding hands with a bouquet of ivory and dusty blue roses at sunset' }
+  ],
+
   /* ---------- colour stories (the "Shop by colour story" chips) ----------
      id: a short name used by the bouquets below. colours: the little dots, light to dark is fine. */
   colourStories: [
