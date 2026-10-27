@@ -1,0 +1,22 @@
+/* Blooms by Bincy — brand tokens. Import this only in the Blooms section.
+   Fonts (Cormorant Garamond, Montserrat) are loaded by a <link> in each page's <head>, not an @import here,
+   so phones can fetch them in parallel instead of waiting for this file first. */
+
+:root {
+  --blooms-blue:  #5B7895; /* primary: logo, headings, buttons, text */
+  --blooms-blush: #E9B9C4; /* accents only, never for text */
+  --blooms-mist:  #F2F5F8; /* page background */
+  --blooms-leaf:  #9BB08C; /* small accents */
+  --blooms-sky:   #DCE6EF; /* soft panels, text on blue */
+  --blooms-ink:   #22303F; /* body text */
+
+  --blooms-font-heading: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  --blooms-font-body: 'Montserrat', 'Inter', system-ui, sans-serif;
+  --blooms-radius: 14px;
+}
+
+.blooms { background: var(--blooms-mist); color: var(--blooms-ink); font-family: var(--blooms-font-body); }
+.blooms h1, .blooms h2, .blooms h3 { font-family: var(--blooms-font-heading); color: var(--blooms-blue); font-weight: 600; }
+.blooms .btn-primary { background: var(--blooms-blue); color: #fff; border-radius: 999px; padding: .8rem 1.6rem; border: 0; }
+.blooms .btn-primary:hover { background: #4C6680; }
+.blooms .panel { background: var(--blooms-sky); border-radius: var(--blooms-radius); }

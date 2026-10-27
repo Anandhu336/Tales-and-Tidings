@@ -152,7 +152,7 @@ canvas.fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
         .tpl-garden .static .replay{display:none}`);
       document.head.append(extra);
 
-      /* ---------------- flowers ---------------- */
+      
       /* ================= flower art ================= */
       const ROSE_PAL = [
         { c: ['#e0507f','#c93a6c','#b02a5c','#8f1f4b'], glow: 'rgba(255,90,140,.5)' },

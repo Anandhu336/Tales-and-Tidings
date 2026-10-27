@@ -1,0 +1,54 @@
+/* Tales & Blooms: shared header and footer (built by assets/tb/chrome.js), plus the wordmark.
+   Neutral ink-and-ivory colours on purpose: the header belongs to the whole site, and each part
+   (Tales & Tidings burgundy, Blooms by Bincy dusty blue) keeps its own colours inside the page.
+   Fonts: Cormorant Garamond (wordmark) and Inter (menu), loaded by each page. */
+.tb-header, .tb-footer {
+  --tb-ink: #22303F; --tb-ink-2: #3A4A5C; --tb-muted: #5E6B78; --tb-line: #E6E2DA; --tb-paper: #FFFDF9; --tb-blue: #5B7895; --tb-blush: #E9B9C4;
+  font-family: 'Inter', 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+.tb-in { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+.tb-header a, .tb-footer a { text-decoration: none; }
+
+/* wordmark: Tales & Blooms */
+.tb-logo { display: inline-flex; align-items: baseline; gap: .18em; color: var(--tb-ink) !important; font: 600 26px/1 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: .01em; white-space: nowrap; }
+.tb-logo i { font-style: italic; font-weight: 500; color: var(--tb-blue); font-size: 1.05em; }
+
+/* ---------- header ---------- */
+.tb-header { position: sticky; top: 0; z-index: 50; background: rgba(255, 253, 249, .95); -webkit-backdrop-filter: saturate(1.2) blur(10px); backdrop-filter: saturate(1.2) blur(10px); border-bottom: 1px solid var(--tb-line); }
+.tb-header .tb-in { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; }
+.tb-menu-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid var(--tb-line); border-radius: 999px; background: #fff; color: var(--tb-ink); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.tb-menu-btn svg { width: 20px; height: 20px; }
+.tb-nav { display: none; position: absolute; left: 0; right: 0; top: 100%; flex-direction: column; padding: 6px 20px 20px; background: var(--tb-paper); border-bottom: 1px solid var(--tb-line); box-shadow: 0 16px 30px rgba(34, 48, 63, .08); }
+.tb-nav.is-open { display: flex; }
+.tb-nav a:not(.tb-btn) { padding: 14px 2px; border-bottom: 1px solid var(--tb-line); color: var(--tb-ink); font-weight: 500; font-size: 16px; }
+.tb-nav a[aria-current="page"] { font-weight: 600; }
+.tb-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 22px; margin-top: 16px; border-radius: 999px; background: var(--tb-ink); color: #fff !important; font-weight: 600; font-size: 15px; transition: background .2s; }
+.tb-btn:hover { background: var(--tb-ink-2); }
+.tb-header :focus-visible, .tb-footer :focus-visible { outline: 2px solid var(--tb-blue); outline-offset: 3px; border-radius: 6px; }
+
+@media (min-width: 960px) {
+  .tb-header .tb-in { min-height: 76px; }
+  .tb-logo { font-size: 30px; }
+  .tb-menu-btn { display: none; }
+  .tb-nav, .tb-nav.is-open { display: flex; position: static; flex-direction: row; align-items: center; gap: 30px; padding: 0; background: none; border: 0; box-shadow: none; }
+  .tb-nav a:not(.tb-btn) { position: relative; padding: 6px 0; border: 0; font-size: 15px; }
+  .tb-nav a:not(.tb-btn)::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 2px; background: var(--tb-blush); transform: scaleX(0); transition: transform .25s; }
+  .tb-nav a:not(.tb-btn):hover::after, .tb-nav a[aria-current="page"]::after { transform: scaleX(1); }
+  .tb-btn { margin: 0; min-height: 44px; font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .tb-nav a::after, .tb-btn { transition: none; } }
+
+/* ---------- footer ---------- */
+.tb-footer { background: var(--tb-ink); color: #C9D3DD; padding: 56px 0 28px; font-size: 15px; line-height: 1.6; }
+.tb-footer .tb-logo { color: #fff !important; font-size: 30px; }
+.tb-footer .tb-logo i { color: var(--tb-blush); }
+.tb-foot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px 24px; }
+.tb-foot-brand { grid-column: 1 / -1; }
+.tb-foot-brand p { margin: 14px 0 0; max-width: 30em; }
+.tb-family { font-size: 14px; color: #AEBBC8; }
+.tb-family b { color: #fff; font-weight: 600; }
+.tb-footer h4 { margin: 0 0 12px; color: #fff; font-size: 15px; font-weight: 600; }
+.tb-footer .tb-foot-grid a:not(.tb-logo) { display: block; padding: 5px 0; color: #C9D3DD; }
+.tb-footer a:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.tb-foot-base { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, .14); font-size: 13px; color: #AEBBC8; }
+@media (min-width: 860px) { .tb-foot-grid { grid-template-columns: 1.6fr 1fr 1fr 1fr; } .tb-foot-brand { grid-column: auto; } }

@@ -141,11 +141,106 @@
     return el('div', { class: 'brand', html: '<svg viewBox="0 0 28 24" fill="none" stroke="#7b2d5b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="15" rx="2"/><path d="M2.6 7L12 14L21.4 7"/><path d="M12 19.2s-2.6-1.6-2.6-3.3c0-.9.7-1.5 1.4-1.5.5 0 .9.3 1.2.7.3-.4.7-.7 1.2-.7.7 0 1.4.6 1.4 1.5 0 1.7-2.6 3.3-2.6 3.3z" fill="#7b2d5b" stroke="none"/><path d="M24 1.5V5.5M22 3.5H26" stroke="#d9a441"/></svg>' }, el('span', { html: 'Tales <em>&amp;</em> Tidings' }));
   }
 
+  /* ---------------- Tales & Blooms: the whole site's front door ----------------
+     The home page now introduces both parts: Tales & Tidings (these invitations) and Blooms by Bincy (the bouquet shop in blooms/).
+     The shared header and footer come from assets/tb/chrome.js; the bouquet pages use the same ones. */
+  const BLOOMS_URL = 'blooms/';
+  const TB = () => window.TB;
+  const waHref = text => TB() ? TB().waLink(text) : u.waLink('', text);
+  /* "#/designs", "#/packages"... from the header and footer: parts of the home page */
+  const SECTIONS = { packages: '#lp-packages', faq: '#lp-faq', bouquets: '#lp-blooms' };
+
+  const tbHero = thumbId => el('section', { class: 'tb-hero' }, el('div', { class: 'lp-in' },
+    el('p', { class: 'tb-eyebrow' }, 'Tales & Blooms · Adimali, Kerala'),
+    el('h1', { html: 'Everything for your <em>wedding day</em>' }),
+    el('p', { class: 'tb-lead' }, 'Digital invitations your guests open with one tap, and handmade bouquets made for your dress and your colours.'),
+    el('div', { class: 'tb-choices' },
+      el('a', { class: 'tb-choice', href: '#/invitations' },
+        el('div', { class: 'tb-pic thumb', html: (KS.templates[thumbId] || {}).thumb || '' }),
+        el('div', { class: 'tb-txt' }, el('small', {}, 'Tales & Tidings'), el('h2', {}, 'Digital invitations'),
+          el('p', {}, 'Wedding invites, birthdays and letters with photos, maps and music. Free to create and preview.'),
+          el('span', { class: 'tb-go' }, 'Create yours →'))),
+      el('a', { class: 'tb-choice bq', href: BLOOMS_URL },
+        el('div', { class: 'tb-pic' }, el('img', { src: 'assets/blooms/photos/cascade-hero-540.jpg', alt: 'A handmade cascade bouquet', width: '540', height: '675' })),
+        el('div', { class: 'tb-txt' }, el('small', {}, 'Blooms by Bincy'), el('h2', {}, 'Handmade bouquets'),
+          el('p', {}, 'Bridal, cascade and round bouquets for Kerala Christian weddings, made to order in Adimali, Idukki.'),
+          el('span', { class: 'tb-go' }, 'See the bouquets →')))),
+    el('a', { class: 'tb-pack-link', href: '#/packages' }, el('b', {}, 'Planning both?'), ' Ask about a wedding package →')));
+
+  const packagesSection = () => el('section', { class: 'tb-pack', id: 'lp-packages' }, el('div', { class: 'lp-in' },
+    el('div', { class: 'tb-pack-card' },
+      el('p', { class: 'tb-eyebrow' }, 'Wedding packages'),
+      el('h2', {}, 'Your invitation and your flowers, planned together'),
+      el('p', {}, 'One conversation for both: we match the bouquets to your invitation’s colours and save your date for the flowers.'),
+      el('ul', {}, ['A digital wedding invitation, set up with you', 'The bride’s bouquet in your colours', 'Bridesmaid bouquets and flower girl baskets', 'Groom’s buttonhole to match'].map(t => el('li', {}, t))),
+      el('div', { class: 'tb-pack-cta' },
+        el('a', { class: 'tb-pack-btn', href: waHref('Hello Tales & Blooms! I would like to ask about a wedding package (invitation + bouquets). Our wedding date is: '), target: '_blank', rel: 'noopener' }, 'Ask about a package on WhatsApp'),
+        el('a', { class: 'tb-pack-more', href: '#/invitations' }, 'Or start with the invitation')))));
+
+  /* little bouquet-style icons in the Blooms by Bincy look (like its Instagram highlight covers): mist shapes on dusty blue */
+  const MIST = '#F2F5F8', DUSTY = '#5B7895';
+  const flower = (cx, cy, r, petal, centre) => [0, 1, 2, 3, 4, 5].map(k => { const a = k * Math.PI / 3;
+    return `<circle cx="${(cx + Math.cos(a) * r * .56).toFixed(1)}" cy="${(cy + Math.sin(a) * r * .56).toFixed(1)}" r="${(r * .44).toFixed(1)}" fill="${petal}"/>`; }).join('') +
+    `<circle cx="${cx}" cy="${cy}" r="${(r * .3).toFixed(1)}" fill="${centre}"/>`;
+  const svg64 = inner => `<svg viewBox="0 0 64 64" aria-hidden="true">${inner}</svg>`;
+  const BOUQUET_STYLES = [
+    ['Bridal', 'For the bride', svg64(flower(32, 32, 22, MIST, DUSTY))],
+    ['Cascade', 'Flowing and graceful', svg64(`<path d="M32 6C24 17 14 29 14 40a18 18 0 0 0 36 0C50 29 40 17 32 6Z" fill="${MIST}"/>` + flower(32, 40, 11, DUSTY, MIST))],
+    ['Round', 'Soft and timeless', svg64(flower(23, 26, 12, MIST, DUSTY) + flower(41, 26, 12, MIST, DUSTY) + flower(32, 42, 12, MIST, DUSTY))],
+    ['Bridesmaids', 'Matched to the bride’s', svg64(flower(22, 36, 13, MIST, DUSTY) + flower(44, 28, 9, MIST, DUSTY))],
+    ['Flower girl', 'Little baskets', svg64(`<path d="M20 33a12 13 0 0 1 24 0" fill="none" stroke="${MIST}" stroke-width="3.5" stroke-linecap="round"/><path d="M13 33h38l-4.5 17a4 4 0 0 1-3.9 3H21.4a4 4 0 0 1-3.9-3Z" fill="${MIST}"/>` + flower(32, 42, 8, DUSTY, MIST))],
+    ['Baptism', 'For a baby’s day', svg64(`<path d="M32 10v30M22 20h20" stroke="${MIST}" stroke-width="4" stroke-linecap="round"/>` + flower(40, 46, 10, MIST, DUSTY))]
+  ];
+  const bloomsSection = () => el('section', { class: 'lp-blooms', id: 'lp-blooms' }, el('div', { class: 'lp-in' },
+    el('div', { class: 'lpb-copy' },
+      el('img', { class: 'lpb-logo', src: 'assets/blooms/logo/logo.svg', alt: 'Blooms by Bincy', width: '180', height: '94', loading: 'lazy' }),
+      el('h2', {}, 'Bouquets for your big day'),
+      el('p', {}, 'Handmade bouquets for Kerala Christian weddings, made to order in Adimali, Idukki, in the colours of your day.'),
+      el('div', { class: 'lpb-cta' }, el('a', { class: 'lpb-btn', href: BLOOMS_URL }, 'See the bouquets'),
+        el('a', { class: 'lpb-link', href: BLOOMS_URL + 'how-to-order.html' }, 'How to order'))),
+    el('ul', { class: 'lpb-styles', 'aria-label': 'Bouquet styles' }, BOUQUET_STYLES.map(([name, note, icon]) =>
+      el('li', {}, el('a', { href: BLOOMS_URL }, el('span', { class: 'lpb-ic', html: icon }), el('b', {}, name), el('small', {}, note)))))));
+
+  /* ---------------- design cards, shared by the home page and the letters page ---------------- */
+  const WEDDING = 'Wedding invitations';
+  const designCard = id => { const T = KS.templates[id];
+    return el('button', { class: 'tcard', type: 'button', onclick: () => { location.hash = '#/new/' + id; } },
+      el('div', { class: 'thumb', html: T.thumb || '' }),
+      el('div', { class: 'tinfo' }, el('h3', {}, T.name), el('p', {}, T.tagline), el('small', {}, T.for || ''), el('span', { class: 'go' }, 'Start with this →'))); };
+  /* templates name a group; one heading and one grid per group, weddings first */
+  function designGroups() {
+    const groups = [];
+    IDS.forEach(id => { const g = KS.templates[id].group || ''; let x = groups.find(y => y.g === g); if (!x) groups.push(x = { g, ids: [] }); x.ids.push(id); });
+    return groups.sort((a, b) => (b.g === WEDDING) - (a.g === WEDDING));
+  }
+  /* on the home page, instead of the letters and birthdays grid: one card that opens their page */
+  const moreDesignsCard = x => el('a', { class: 'lp-more', href: '#/letters' },
+    el('div', { class: 'lp-more-thumbs', 'aria-hidden': 'true' }, x.ids.slice(0, 3).map(id => el('div', { class: 'thumb', html: KS.templates[id].thumb || '' }))),
+    el('div', { class: 'lp-more-txt' }, el('small', {}, x.ids.length + ' designs'), el('h3', {}, x.g || 'More designs'),
+      el('p', {}, 'Love letters, date asks, sorry notes, little quests and birthday pages.'), el('span', { class: 'go' }, 'Browse them →')));
+  const tbHeader = active => TB() ? TB().header({ base: '', active,
+    account: B.configured() ? { label: B.signedIn() ? 'My dashboard' : 'Sign in' } : false, cta: { href: '#/invitations', label: 'Create an invitation' } }) : null;
+
+  /* ---------------- letters and birthdays: their own page (#/letters) ---------------- */
+  function lettersPage() {
+    if (teardown) { teardown(); teardown = null; }
+    unmount(); document.title = 'Letters and Birthdays | Tales & Blooms'; document.body.className = 'is-app is-lp'; window.scrollTo(0, 0);
+    u.font('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,400;1,9..144,600&family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap');
+    const others = designGroups().filter(x => x.g !== WEDDING);
+    app().textContent = '';
+    app().append(el('div', { class: 'lp' },
+      tbHeader('invitations'),
+      el('section', { class: 'lp-coll lp-page' }, el('div', { class: 'lp-panel' },
+        el('a', { class: 'lp-back', href: '#/' }, '← Home'),
+        el('h1', { class: 'lp-h2', html: 'Letters and <b>Birthdays</b>' }),
+        el('p', { class: 'lp-page-lead' }, 'Little pages for the people you love: a letter under the stars, a date ask with a runaway “No” button, a sorry note, a love quest or a birthday party. Make one, then share it with one link.'),
+        others.map(x => el('section', { class: 'grp' }, others.length > 1 && x.g ? el('h2', {}, x.g) : null, el('div', { class: 'cards' }, x.ids.map(designCard)))),
+        el('div', { class: 'lp-cta2' }, el('p', {}, 'Planning a wedding instead?'), el('a', { class: 'lp-btn', href: '#/invitations' }, 'See wedding invitations')))),
+      TB() ? TB().footer({ base: '' }) : null));
+  }
+
   /* ---------------- home (landing page) ---------------- */
   const LP_ICON = {
-    wedding: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 22C18 15 26 12 32 12S46 15 56 22"/><path d="M8 22H56V27H8Z"/><path d="M12 27V56M52 27V56M6 56H58"/><path d="M12 27C17 36 21 42 23 54M52 27C47 36 43 42 41 54"/><circle cx="32" cy="16" r="3.5"/><path d="M32 36C29 32 23 34 24 39C25 43 32 47 32 47S39 43 40 39C41 34 35 32 32 36Z"/></svg>',
-    birthday: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 56V40C10 37 12 35 15 35H49C52 35 54 37 54 40V56"/><path d="M14 35V26H50V35"/><path d="M10 46C15 50 19 42 24 46S33 50 37 46 45 42 54 46"/><path d="M6 56H58M24 26V18M32 26V18M40 26V18"/><path d="M24 12C22 14 22 16 24 17C26 16 26 14 24 12ZM32 12C30 14 30 16 32 17C34 16 34 14 32 12ZM40 12C38 14 38 16 40 17C42 16 42 14 40 12Z"/></svg>',
-    letter: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 24L32 8L56 24V54H8Z"/><path d="M8 24L32 40L56 24"/><path d="M32 30C29 26 23 28 24 33C25 37 32 41 32 41"/><path d="M32 30C35 26 41 28 40 33C39 37 32 41 32 41"/></svg>',
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.5L11 15.5L16.5 9.5"/></svg>',
     step1: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="6" y="9" width="36" height="30" rx="3"/><path d="M6 17H42M6 34L17 24L26 32L32 27L42 35"/></svg>',
     step2: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="24" cy="24" r="16"/><path d="M24 8V40M8 24H40M12.7 12.7L35.3 35.3M35.3 12.7L12.7 35.3"/><circle cx="24" cy="24" r="6" fill="currentColor" fill-opacity=".2"/></svg>',
@@ -153,14 +248,15 @@
     step4: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="24" r="5"/><circle cx="36" cy="11" r="5"/><circle cx="36" cy="37" r="5"/><path d="M16.5 21.5L31.5 13.5M16.5 26.5L31.5 34.5"/></svg>',
     pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21S5 14.5 5 9.5A7 7 0 0 1 19 9.5C19 14.5 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>'
   };
-  const OCCASIONS = { 'Wedding invitations': ['wedding', 'Wedding Invitations', 'Celebrate your love with elegant digital wedding invites.'], 'Letters and birthdays': ['birthday', 'Birthdays and Letters', 'Birthday surprises, love letters and heartfelt notes.'] };
   const FAQ = [
     ['Can I customise my digital invitation?', 'Yes. Change the names, dates, events, photos, colours, lettering and music. The preview updates as you type, so you see exactly what your guests will see.'],
     ['How do I share my invitation with guests?', 'When you publish, you get one short link. Send it on WhatsApp, by text or email, or post it on social media. It opens on any phone or computer.'],
     ['Do my guests need to sign up or install anything?', 'No. Guests just tap the link. There is nothing to download and no account to create.'],
     ['Can guests reply or send wishes?', 'Yes. Wedding designs include an RSVP form and a "Send Greetings" button. Replies arrive on your WhatsApp.'],
     ['Can I add music, a video or a live stream?', 'Yes. Pick one of our songs, upload your own or paste a YouTube link. Wedding designs also take a YouTube video and a live-stream link.'],
-    ['Can I edit it after publishing?', 'Yes. Create a free account and every page you publish is saved to your dashboard. Sign in from any phone or computer, open a page, change anything and save. The link stays the same.']
+    ['Can I edit it after publishing?', 'Yes. Create a free account and every page you publish is saved to your dashboard. Sign in from any phone or computer, open a page, change anything and save. The link stays the same.'],
+    ['Do you make wedding bouquets too?', 'Yes. Blooms by Bincy, our bouquet studio in Adimali, Idukki, handmakes bridal, cascade and round bouquets, bridesmaid bouquets, flower girl baskets and baptism sets. Each one is made to order in your colours.'],
+    ['Can I get my invitation and bouquets together?', 'Yes. Ask about a wedding package: we set up your digital invitation and match the bride’s and bridesmaids’ bouquets to its colours. Message us on WhatsApp with your wedding date.']
   ];
 
   let heroOn = true, heroVisible = () => {}, lpObs = null, lpTimers = [];
@@ -210,27 +306,24 @@
       list[0] && list[0].example ? el('p', { class: 'lp-exnote' }, 'Only you can see these example cards (on this computer). Add real reviews or Instagram links in reviews.js and they will show to everyone.') : null));
   }
 
+  /* pieces shared by the home page and the invitations page */
+  const lpGo = sel => e => { if (e) e.preventDefault(); const t = document.querySelector(sel); if (t) t.scrollIntoView({ behavior: u.RM ? 'auto' : 'smooth' }); };
+  const lpChecks = list => el('ul', { class: 'lp-checks' }, list.map(t => el('li', { html: LP_ICON.check }, t)));
+  const lpH2 = (a, b, c) => el('h2', { class: 'lp-h2', html: `${a}<br>${b ? `<b>${b}</b>` : ''}${c || ''}` });
+  const lpDevice = (cls, id) => el('div', { class: 'lp-dev ' + cls }, el('div', { class: 'scr', html: (KS.templates[id] || {}).thumb || '' }));
+  const lpFaq = list => el('div', { class: 'lp-faq' }, list.map(([q, a], i) => el('details', {}, el('summary', { html: `<b>Q${i + 1}:</b> ${u.esc(q)}` }), el('p', {}, a))));
+  const lpFont = () => u.font('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,400;1,9..144,600&family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap');
+  const FEATURED = ['wedding-christian', 'celestial', 'wedding']; // the three wedding designs shown on the home page
+  const HOME_FAQ = [1, 2, 5, 6, 7]; // which FAQ answers the home page shows (the invitations page shows the invitation ones)
+
+  /* the home page: a front door to both parts. Details live on #/invitations, #/letters and in blooms/ */
   function home() {
     if (teardown) { teardown(); teardown = null; }
-    unmount(); document.title = 'Tales & Tidings: stories and invitations for the people you love'; document.body.className = 'is-app is-lp'; window.scrollTo(0, 0);
-    u.font('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,400;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap');
+    unmount(); document.title = 'Tales & Blooms | Wedding Invitations and Handmade Bouquets, Kerala'; document.body.className = 'is-app is-lp'; window.scrollTo(0, 0);
+    lpFont();
     const mine = B.signedIn() ? [] : B.myPages(); // signed in: pages live in the dashboard instead
-    const go = sel => e => { if (e) e.preventDefault(); const t = document.querySelector(sel); if (t) t.scrollIntoView({ behavior: u.RM ? 'auto' : 'smooth' }); };
-    const card = id => { const T = KS.templates[id];
-      return el('button', { class: 'tcard', type: 'button', onclick: () => { location.hash = '#/new/' + id; } },
-        el('div', { class: 'thumb', html: T.thumb || '' }),
-        el('div', { class: 'tinfo' }, el('h3', {}, T.name), el('p', {}, T.tagline), el('small', {}, T.for || ''), el('span', { class: 'go' }, 'Start with this →'))); };
-    const groups = []; // templates can name a group; the home screen shows one heading and one grid per group
-    IDS.forEach(id => { const g = KS.templates[id].group || ''; let x = groups.find(y => y.g === g); if (!x) groups.push(x = { g, ids: [] }); x.ids.push(id); });
-    groups.sort((a, b) => (b.g === 'Wedding invitations') - (a.g === 'Wedding invitations')); // invitations lead on the landing page
-    const gid = i => 'grp-' + i;
-    const sections = groups.map((x, i) => el('section', { class: 'grp', id: gid(i) }, x.g ? el('h2', {}, x.g) : null, el('div', { class: 'cards' }, x.ids.map(card))));
-    const checks = list => el('ul', { class: 'lp-checks' }, list.map(t => el('li', { html: LP_ICON.check }, t)));
-    const h2 = (a, b, c) => el('h2', { class: 'lp-h2', html: `${a}<br>${b ? `<b>${b}</b>` : ''}${c || ''}` });
-    const createBtn = () => el('a', { class: 'lp-btn', href: '#lp-collection', onclick: go('#lp-collection') }, 'Create Now');
-    const device = (cls, id) => el('div', { class: 'lp-dev ' + cls }, el('div', { class: 'scr', html: (KS.templates[id] || {}).thumb || '' }));
 
-    /* live phone preview in the hero: the Celestial design playing its sample */
+    /* live phone preview: the Celestial design playing its sample */
     const showId = KS.templates.celestial ? 'celestial' : IDS[0];
     const pv = el('iframe', { src: location.pathname + '?preview=1', title: 'Sample invitation', tabindex: '-1', loading: 'lazy' });
     // played "as a visitor" (animations on, no opening card) and scrolled slowly from top to bottom, on a loop
@@ -262,69 +355,86 @@
 
     app().textContent = '';
     app().append(el('div', { class: 'lp' },
-      el('div', { class: 'lp-strip' }, el('div', { class: 'lp-in' }, el('span', {}, 'Stories and invitations for the people you love'),
-        el('nav', {}, el('a', { href: '#lp-how', onclick: go('#lp-how') }, 'How it works'), el('a', { href: '#lp-faq', onclick: go('#lp-faq') }, 'FAQ')))),
-      el('header', { class: 'lp-nav' }, el('div', { class: 'lp-in' }, brand(),
-        el('nav', {}, el('a', { href: '#lp-collection', onclick: go('#lp-collection'), class: 'hide-s' }, 'Invitations'),
-          B.configured() ? el('a', { href: '#/account' }, B.signedIn() ? 'My dashboard' : 'Sign in') : mine.length ? el('a', { href: '#lp-mine', onclick: go('#lp-mine') }, 'My pages') : null,
-          el('a', { href: '#lp-faq', onclick: go('#lp-faq'), class: 'hide-s' }, 'FAQ'), createBtn()))),
+      tbHeader(),
+      tbHero('wedding-christian'),
 
       el('section', { class: 'lp-hero' }, el('div', { class: 'lp-in' },
         el('div', { class: 'lp-copy' },
-          el('h1', { class: 'lp-rot', 'aria-live': 'polite' }, el('span', { html: HEADLINES[0] })),
+          el('p', { class: 'tb-eyebrow' }, 'Tales & Tidings · Digital invitations'),
+          el('h2', { class: 'lp-rot', 'aria-live': 'polite' }, el('span', { html: HEADLINES[0] })),
           el('p', {}, 'Create elegant, fully customisable e-invites with your photos, venues, countdown and music. Share one link that opens beautifully on every phone.'),
-          el('div', { class: 'lp-cta' }, createBtn(), el('a', { class: 'lp-link', href: '#lp-collection', onclick: go('#lp-collection') }, 'View Invitations')),
+          el('div', { class: 'lp-cta' }, el('a', { class: 'lp-btn', href: '#/invitations' }, 'See all invitations'), el('a', { class: 'lp-link', href: '#/how' }, 'How it works')),
           el('p', { class: 'lp-quote' }, el('span', {}, '“' + QUOTES[0][0] + '”', el('cite', {}, QUOTES[0][1]))),
           B.configured() ? null : el('div', { class: 'notice', html: '<b>Publishing is not switched on yet.</b> You can design and preview everything now. To share pages, connect a free Supabase project: open <code>SETUP.md</code> in this folder and follow the steps.' })),
         el('div', { class: 'lp-art' }, el('div', { class: 'lp-blob' }), ['a', 'b', 'c', 'd', 'e', 'f'].map(k => el('i', { class: 'lp-spark ' + k }, '✦')),
           el('div', { class: 'lp-phone' }, el('i', { class: 'notch' }), el('div', { class: 'scr' }, pv)),
           el('div', { class: 'lp-chip', html: `<span>${LP_ICON.pin}</span>Find your venue<br>with maps` })))),
 
-      el('section', { class: 'lp-stats' }, el('div', { class: 'lp-in' },
-        [[String(IDS.length), 'Designs to choose from'], ['Free', 'To create and preview'], ['1', 'Link to share anywhere'], ['0', 'Apps for guests to install'], ['Any', 'Language and script']]
-          .map(([n, l]) => el('div', {}, el('b', { 'data-n': /^\d+$/.test(n) ? n : null }, n), el('span', {}, l))))),
+      el('section', { class: 'lp-sec lp-featured' }, el('div', { class: 'lp-in' },
+        lpH2('Popular', 'Wedding', ' Designs'),
+        el('div', { class: 'cards' }, FEATURED.filter(id => KS.templates[id]).map(designCard)),
+        el('div', { class: 'lp-cta2' }, el('p', {}, IDS.length + ' designs for weddings, birthdays and letters.'), el('a', { class: 'lp-btn', href: '#/invitations' }, 'See all invitations')))),
 
-      el('section', { class: 'lp-sec' }, el('div', { class: 'lp-in' }, h2('Find the Perfect', 'Invitation', ' for Every Occasion'),
-        el('div', { class: 'lp-occ' }, groups.map((x, i) => { const o = OCCASIONS[x.g] || ['letter', x.g || 'More designs', ''];
-          return el('a', { href: '#' + gid(i), onclick: go('#' + gid(i)) }, el('span', { html: LP_ICON[o[0]] }), el('h3', {}, o[1]), el('p', {}, o[2]), el('small', {}, x.ids.length + (x.ids.length === 1 ? ' design' : ' designs'))); })))),
-
-      el('section', { class: 'lp-sec lp-split' }, el('div', { class: 'lp-in' },
-        el('div', {}, el('h2', { class: 'lp-h2 left', html: 'Features That<br>Make Your <b>Invitations</b><br>Truly Unforgettable' }),
-          el('p', { class: 'lp-p' }, 'Make your day unforgettable with interactive invitation features. From the couple\'s profiles to live streaming, everything brings your celebration closer to your guests, wherever they are.'),
-          checks(['Bride and groom profiles', 'Photo gallery', 'Venue location maps', 'Event date countdown', 'RSVP and wishes on WhatsApp', 'YouTube video or live stream', 'Background music', 'Easy social sharing']), createBtn()),
-        el('div', { class: 'lp-devs' }, el('div', { class: 'lp-circle blue' }), device('tab', showId), device('ph', 'wedding-hindu')))),
-
-      el('div', { class: 'lp-marq', 'aria-hidden': 'true' }, el('div', {}, [0, 1].map(() => el('span', { html: ['Photo Gallery', 'Venue Map', 'Countdown', 'Music', 'RSVP', 'Live Stream'].map(w => `${w}<i>*</i>`).join('') })))),
-
-      el('section', { class: 'lp-coll', id: 'lp-collection' }, el('div', { class: 'lp-panel' },
-        h2('Discover Our', '', 'Collection of <b>Elegant</b> E-invites'), sections,
-        el('div', { class: 'lp-cta2' }, el('p', {}, 'Browse, customise and share a stunning invitation in minutes.'), createBtn()))),
+      bloomsSection(),
+      packagesSection(),
 
       mine.length ? el('section', { class: 'lp-sec mine', id: 'lp-mine' }, el('div', { class: 'lp-in' }, el('h2', { class: 'lp-h2' }, 'Your pages'),
         B.configured() ? el('p', { class: 'help top' }, 'These are saved in this browser only. ', el('a', { href: '#/account' }, 'Create a free account'), ' to keep them safe and edit them from any device.') : null,
         mine.map(p => myRow(p)))) : null,
 
+      reviewsSection(lpH2),
+
+      el('section', { class: 'lp-sec', id: 'lp-faq' }, el('div', { class: 'lp-in narrow' }, lpH2('Things You', '', 'Might Want to <b>Know</b>'),
+        lpFaq(HOME_FAQ.map(i => FAQ[i])))),
+
+      TB() ? TB().footer({ base: '' }) : null));
+    lpMotion();
+  }
+
+  /* ---------------- invitations: every design and all the detail (#/invitations) ---------------- */
+  function invitationsPage() {
+    if (teardown) { teardown(); teardown = null; }
+    unmount(); document.title = 'Digital Wedding Invitations | Tales & Blooms'; document.body.className = 'is-app is-lp'; window.scrollTo(0, 0);
+    lpFont();
+    teardown = () => { lpTimers.forEach(clearInterval); lpTimers = []; if (lpObs) { lpObs.disconnect(); lpObs = null; } };
+    const groups = designGroups();
+    // the wedding designs in full; the other groups have their own page (#/letters) and a card that links to it
+    const sections = groups.map(x => x.g === WEDDING
+      ? el('section', { class: 'grp' }, el('h2', {}, x.g), el('div', { class: 'cards' }, x.ids.map(designCard)))
+      : moreDesignsCard(x));
+    const toTop = () => el('a', { class: 'lp-btn', href: '#lp-collection', onclick: lpGo('#lp-collection') }, 'Choose a design');
+
+    app().textContent = '';
+    app().append(el('div', { class: 'lp' },
+      tbHeader('invitations'),
+
+      el('section', { class: 'lp-coll lp-page', id: 'lp-collection' }, el('div', { class: 'lp-panel' },
+        el('a', { class: 'lp-back', href: '#/' }, '← Home'),
+        el('h1', { class: 'lp-h2', html: 'Digital Wedding <b>Invitations</b>' }),
+        el('p', { class: 'lp-page-lead' }, 'Pick a design, add your names, dates, venues, photos and a song, then share one link on WhatsApp. Free to create and preview.'),
+        sections)),
+
       el('section', { class: 'lp-steps', id: 'lp-how' }, el('div', { class: 'lp-in' },
         [['Choose a Template', 'Pick a wedding, birthday or letter design you love.'], ['Personalise', 'Add your names, words, colours and a song.'], ['Add Event Details', 'Enter venues, dates, timings, photos and notes.'], ['Share Instantly', 'Publish and send one link on WhatsApp, email or social media.']]
           .map(([t, d], i) => el('div', {}, el('span', { class: 'ic', html: LP_ICON['step' + (i + 1)] }, el('em', {}, '0' + (i + 1))), el('h3', {}, t), el('p', {}, d))))),
 
+      el('section', { class: 'lp-sec lp-split' }, el('div', { class: 'lp-in' },
+        el('div', {}, el('h2', { class: 'lp-h2 left', html: 'Features That<br>Make Your <b>Invitations</b><br>Truly Unforgettable' }),
+          el('p', { class: 'lp-p' }, 'Make your day unforgettable with interactive invitation features. From the couple\'s profiles to live streaming, everything brings your celebration closer to your guests, wherever they are.'),
+          lpChecks(['Bride and groom profiles', 'Photo gallery', 'Venue location maps', 'Event date countdown', 'RSVP and wishes on WhatsApp', 'YouTube video or live stream', 'Background music', 'Easy social sharing']), toTop()),
+        el('div', { class: 'lp-devs' }, el('div', { class: 'lp-circle blue' }), lpDevice('tab', 'celestial'), lpDevice('ph', 'wedding-hindu')))),
+
       el('section', { class: 'lp-sec lp-split rev' }, el('div', { class: 'lp-in' },
-        el('div', { class: 'lp-devs' }, el('div', { class: 'lp-circle pink' }), device('tab', 'wedding'), device('ph', 'birthday')),
+        el('div', { class: 'lp-devs' }, el('div', { class: 'lp-circle pink' }), lpDevice('tab', 'wedding'), lpDevice('ph', 'birthday')),
         el('div', {}, el('h2', { class: 'lp-h2 left', html: 'Reasons to Go<br>Digital with <b>Tales &amp; Tidings</b>' }),
           el('p', { class: 'lp-p' }, 'Digital invitations are the modern, simple way to announce your day. They save time and money, and reach every guest instantly. With music, wishes and maps, your invite becomes more than a card: it is a little celebration of its own.'),
-          checks(['Eco-friendly and paperless', 'No printing or postage costs', 'Easy to share on WhatsApp and social media', 'Guests can reply and send wishes instantly', 'Fully customisable with photos, music and themes']), createBtn()))),
+          lpChecks(['Eco-friendly and paperless', 'No printing or postage costs', 'Easy to share on WhatsApp and social media', 'Guests can reply and send wishes instantly', 'Fully customisable with photos, music and themes']), toTop()))),
 
-      reviewsSection(h2),
+      el('section', { class: 'lp-sec', id: 'lp-inv-faq' }, el('div', { class: 'lp-in narrow' }, lpH2('Invitation', '', '<b>Questions</b>'),
+        lpFaq(FAQ.slice(0, 6)),
+        el('div', { class: 'lp-cta2' }, el('p', {}, 'Browse, customise and share a stunning invitation in minutes.'), toTop()))),
 
-      el('section', { class: 'lp-sec', id: 'lp-faq' }, el('div', { class: 'lp-in narrow' }, h2('Things You', '', 'Might Want to <b>Know</b>'),
-        el('div', { class: 'lp-faq' }, FAQ.map(([q, a], i) => el('details', {}, el('summary', { html: `<b>Q${i + 1}:</b> ${u.esc(q)}` }), el('p', {}, a)))),
-        el('div', { class: 'lp-cta2' }, el('p', {}, 'Browse, customise and share a stunning invitation in minutes.'), createBtn()))),
-
-      el('footer', { class: 'lp-foot' }, el('div', { class: 'lp-in' },
-        el('div', {}, brand(), el('p', {}, 'Share your tales, send your tidings. Wedding invitations, birthday surprises and heartfelt letters for the people you love, shared with one link.')),
-        el('div', {}, el('h4', {}, 'Invitations'), groups.map((x, i) => el('a', { href: '#' + gid(i), onclick: go('#' + gid(i)) }, x.g || 'Designs'))),
-        el('div', {}, el('h4', {}, 'Help'), el('a', { href: '#lp-how', onclick: go('#lp-how') }, 'How it works'), el('a', { href: '#lp-faq', onclick: go('#lp-faq') }, 'FAQ'))),
-        el('div', { class: 'lp-copyr' }, el('div', { class: 'lp-in' }, '© ' + new Date().getFullYear() + ' Tales & Tidings. Share your tales, send your tidings.')))));
+      TB() ? TB().footer({ base: '' }) : null));
     lpMotion();
   }
 
@@ -334,8 +444,8 @@
     /* headline and quote take turns: fade out, swap, fade in */
     const swap = (box, i, html) => { const sp = box.firstElementChild; sp.classList.add('out'); setTimeout(() => { if (typeof html === 'string') sp.innerHTML = html; else { sp.textContent = ''; sp.append(...html); } sp.classList.remove('out'); }, 450); };
     const h1 = $('.lp-rot', root), qt = $('.lp-quote', root); let hi = 0, qi = 0;
-    lpTimers.push(setInterval(() => { if (document.hidden) return; hi = (hi + 1) % HEADLINES.length; swap(h1, hi, HEADLINES[hi]); }, 4800));
-    lpTimers.push(setInterval(() => { if (document.hidden) return; qi = (qi + 1) % QUOTES.length; swap(qt, qi, ['“' + QUOTES[qi][0] + '”', el('cite', {}, QUOTES[qi][1])]); }, 7000));
+    if (h1) lpTimers.push(setInterval(() => { if (document.hidden) return; hi = (hi + 1) % HEADLINES.length; swap(h1, hi, HEADLINES[hi]); }, 4800));
+    if (qt) lpTimers.push(setInterval(() => { if (document.hidden) return; qi = (qi + 1) % QUOTES.length; swap(qt, qi, ['“' + QUOTES[qi][0] + '”', el('cite', {}, QUOTES[qi][1])]); }, 7000));
     /* reviews glide one card at a time, pausing while someone is reading */
     const track = $('.lp-revs', root);
     if (track && track.children.length > 1 && !u.RM) {
@@ -345,11 +455,11 @@
         track.scrollTo({ left: track.scrollLeft + w > track.scrollWidth - track.clientWidth + 4 ? 0 : track.scrollLeft + w, behavior: 'smooth' }); }, 4500));
     }
     const hero = $('.lp-hero', root);
-    if ('IntersectionObserver' in window) {
+    if (hero && 'IntersectionObserver' in window) {
       new IntersectionObserver(es => { heroVisible(es[0].isIntersecting); }).observe(hero);
     }
     if (u.RM || !('IntersectionObserver' in window)) return;
-    const groups = ['.lp-sec .lp-h2', '.lp-coll .lp-h2', '.lp-occ > a', '.lp-split .lp-in > *', '.lp-checks li', '.lp-panel .tcard', '.lp-cta2', '.lp-steps .lp-in > div', '.lp-faq details', '.lp-reviews .lp-h2', '.lp-revs', '.lp-ig', '.lp-foot > .lp-in > div', '.lp-stats .lp-in > div', '.lp .mrow'];
+    const groups = ['.lp-sec .lp-h2', '.lp-coll .lp-h2', '.lp-split .lp-in > *', '.lp-checks li', '.lp-panel .tcard', '.lp-featured .tcard', '.lp-featured .lp-h2', '.lp-cta2', '.lp-steps .lp-in > div', '.lp-faq details', '.lp-reviews .lp-h2', '.lp-revs', '.lp-ig', '.lp-foot > .lp-in > div', '.lp .mrow'];
     const items = [];
     groups.forEach(sel => u.$$(sel, root).forEach(n => { const i = [...n.parentNode.children].indexOf(n); n.classList.add('lp-rv'); n.style.transitionDelay = Math.min(i, 8) * 90 + 'ms'; items.push(n); }));
     const count = b => { const to = +b.dataset.n, t0 = performance.now(); if (!to) return; const f = t => { const k = Math.min(1, (t - t0) / 1100); b.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(f); }; b.textContent = '0'; requestAnimationFrame(f); };
@@ -431,7 +541,7 @@
     const who = (B.user() || {}).email || '';
     shell('My dashboard',
       el('div', { class: 'dash-head' }, el('div', {}, el('h1', {}, 'My pages'), who ? el('p', { class: 'help' }, 'Signed in as ' + who) : null),
-        el('a', { class: 'btn primary', href: '#/designs' }, '+ Create a new page')),
+        el('a', { class: 'btn primary', href: '#/invitations' }, '+ Create a new page')),
       list);
     let pages, drafts;
     try { await B.claimDevicePages(); [pages, drafts] = await Promise.all([B.accountPages(), B.accountDrafts()]); }
@@ -441,7 +551,7 @@
     }
     if (location.hash.replace(/^#\/?/, '') !== 'account') return; // moved on while loading
     list.textContent = '';
-    if (!pages.length && !drafts.length) return list.append(el('div', { class: 'dash-empty' }, el('h2', {}, 'No pages yet'), el('p', {}, 'Pick a design and make it yours. Your work saves here as you go, and stays ready to edit after you publish.'), el('a', { class: 'btn primary', href: '#/designs' }, 'Choose a design')));
+    if (!pages.length && !drafts.length) return list.append(el('div', { class: 'dash-empty' }, el('h2', {}, 'No pages yet'), el('p', {}, 'Pick a design and make it yours. Your work saves here as you go, and stays ready to edit after you publish.'), el('a', { class: 'btn primary', href: '#/invitations' }, 'Choose a design')));
     if (drafts.length) list.append(el('h2', { class: 'dash-sub' }, 'Drafts', el('small', {}, ' · not published yet')), ...drafts.map(p => dashRow(p, true)));
     if (pages.length) list.append(el('h2', { class: 'dash-sub' }, 'Published'), ...pages.map(p => dashRow(p)));
   }
@@ -688,8 +798,19 @@
     await loadAll();
     if (h[0] === 'new' && KS.templates[h[1]]) return editor(h[1]);
     if (h[0] === 'account') return account();
+    if (h[0] === 'letters') return lettersPage();
+    if (h[0] === 'invitations' || h[0] === 'designs') return invitationsPage(); // "designs" was the old address
+    if (h[0] === 'how') { // "how it works" lives on the invitations page
+      invitationsPage(); history.replaceState(null, '', location.pathname + location.search + '#/invitations');
+      const c = $('#lp-how'); if (c) c.scrollIntoView(); return;
+    }
     if (h[0] === 'reset') return resetPassword();
-    if (h[0] === 'designs') { home(); const c = $('#lp-collection'); if (c) c.scrollIntoView(); return; }
+    if (SECTIONS[h[0]]) { // a part of the home page: scroll there, then drop the "#/..." so the same link works again
+      const was = !!$('.lp'); if (!was) home();
+      const c = $(SECTIONS[h[0]]); history.replaceState(null, '', location.pathname + location.search);
+      if (c) c.scrollIntoView({ behavior: was && !u.RM ? 'smooth' : 'auto' });
+      return;
+    }
     if (h[0] === 'draft' && h[1]) {
       if (!B.signedIn()) { u.toast('Sign in to open your drafts.'); location.hash = '#/account'; return; }
       try { const d = await B.getDraft(h[1]); if (!d || !KS.templates[d.t]) throw new Error('missing'); return editor(d.t, null, { id: h[1], data: d }); }

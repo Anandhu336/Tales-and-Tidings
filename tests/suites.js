@@ -218,10 +218,19 @@ window.SUITES = async () => {
     H.eq(count(), before + 1, 'pages to choose from after adding a quiz question');
   });
 
-  add('builder: home page lists every design', async () => {
-    const { w, d } = await H.open('../index.html');
-    await H.until(() => d.querySelectorAll('.tcard').length >= ids.length, 10000, 'the design cards');
-    return d.querySelectorAll('.tcard').length + ' cards';
+  add('builder: invitations page and letters page list every design', async () => {
+    // #/invitations shows the wedding designs plus a card that opens #/letters, which shows the rest; the home page shows a few
+    const home = await H.open('../index.html');
+    await H.until(() => home.d.querySelectorAll('.lp-featured .tcard').length, 10000, 'the featured designs on the home page');
+    const featured = home.d.querySelectorAll('.lp-featured .tcard').length;
+    const inv = await H.open('../index.html#/invitations');
+    await H.until(() => inv.d.querySelector('.lp-more') && inv.d.querySelectorAll('.tcard').length, 10000, 'the wedding cards and the letters link');
+    const onInv = inv.d.querySelectorAll('.tcard').length;
+    const letters = await H.open('../index.html#/letters');
+    await H.until(() => letters.d.querySelectorAll('.tcard').length, 10000, 'the letters page cards');
+    const onLetters = letters.d.querySelectorAll('.tcard').length;
+    H.eq(onInv + onLetters, ids.length, 'designs across the two pages');
+    return featured + ' featured on home, ' + onInv + ' on invitations, ' + onLetters + ' on letters';
   });
 
   add('builder: song list lays out properly', async () => {

@@ -76,4 +76,4 @@ Pages made **without** an account still work as before (editable only from the b
 - **Deleting a page or draft** from the dashboard also deletes the photos and songs uploaded for it. Files uploaded **without** an account have no owner, so they stay in Storage; you can clean those out from the Supabase dashboard (Storage, then `media`, folder named after the page id).
 - **Drafts** saved to accounts live in the `drafts` table (up to 50 per person). Their photos go in `media/drafts/<draft id>/` and are kept when the draft is published, because the page uses them.
 - **Adding your own built-in songs.** See `music/README.txt`.
-- **`legacy/garden-letter.html`** is the old single-page garden letter, kept for reference. You can delete it.
+- **`legacy/garden-letter.html`** is the old single-page garden letter, kept for reference . you can delete it later 
