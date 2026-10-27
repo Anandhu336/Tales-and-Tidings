@@ -6,7 +6,7 @@
   --tb-ink: #22303F; --tb-ink-2: #3A4A5C; --tb-muted: #5E6B78; --tb-line: #E6E2DA; --tb-paper: #FFFDF9; --tb-blue: #5B7895; --tb-blush: #E9B9C4;
   font-family: 'Inter', 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
-.tb-in { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+.tb-in { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left)); }
 .tb-header a, .tb-footer a { text-decoration: none; }
 
 /* wordmark: Tales & Blooms */
@@ -20,6 +20,8 @@
 .tb-menu-btn svg { width: 20px; height: 20px; }
 .tb-nav { display: none; position: absolute; left: 0; right: 0; top: 100%; flex-direction: column; padding: 6px 20px 20px; background: var(--tb-paper); border-bottom: 1px solid var(--tb-line); box-shadow: 0 16px 30px rgba(34, 48, 63, .08); }
 .tb-nav.is-open { display: flex; }
+/* the open menu scrolls on its own on short screens (a phone on its side), without moving the page behind it */
+.tb-nav { max-height: calc(100vh - 64px); max-height: calc(100dvh - 64px); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .tb-nav a:not(.tb-btn) { padding: 14px 2px; border-bottom: 1px solid var(--tb-line); color: var(--tb-ink); font-weight: 500; font-size: 16px; }
 .tb-nav a[aria-current="page"] { font-weight: 600; }
 .tb-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 22px; margin-top: 16px; border-radius: 999px; background: var(--tb-ink); color: #fff !important; font-weight: 600; font-size: 15px; transition: background .2s; }
@@ -30,16 +32,17 @@
   .tb-header .tb-in { min-height: 76px; }
   .tb-logo { font-size: 30px; }
   .tb-menu-btn { display: none; }
-  .tb-nav, .tb-nav.is-open { display: flex; position: static; flex-direction: row; align-items: center; gap: 30px; padding: 0; background: none; border: 0; box-shadow: none; }
+  .tb-nav, .tb-nav.is-open { display: flex; max-height: none; overflow: visible; position: static; flex-direction: row; align-items: center; gap: 30px; padding: 0; background: none; border: 0; box-shadow: none; }
   .tb-nav a:not(.tb-btn) { position: relative; padding: 6px 0; border: 0; font-size: 15px; }
   .tb-nav a:not(.tb-btn)::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 2px; background: var(--tb-blush); transform: scaleX(0); transition: transform .25s; }
   .tb-nav a:not(.tb-btn):hover::after, .tb-nav a[aria-current="page"]::after { transform: scaleX(1); }
   .tb-btn { margin: 0; min-height: 44px; font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) { .tb-nav a::after, .tb-btn { transition: none; } }
+.tb-menu-btn, .tb-nav a, .tb-footer a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 
 /* ---------- footer ---------- */
-.tb-footer { background: var(--tb-ink); color: #C9D3DD; padding: 56px 0 28px; font-size: 15px; line-height: 1.6; }
+.tb-footer { background: var(--tb-ink); color: #C9D3DD; padding: 56px 0 calc(28px + env(safe-area-inset-bottom)); font-size: 15px; line-height: 1.6; }
 .tb-footer .tb-logo { color: #fff !important; font-size: 30px; }
 .tb-footer .tb-logo i { color: var(--tb-blush); }
 .tb-foot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px 24px; }

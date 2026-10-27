@@ -201,6 +201,88 @@
     el('ul', { class: 'lpb-styles', 'aria-label': 'Bouquet styles' }, BOUQUET_STYLES.map(([name, note, icon]) =>
       el('li', {}, el('a', { href: BLOOMS_URL }, el('span', { class: 'lpb-ic', html: icon }), el('b', {}, name), el('small', {}, note)))))));
 
+  /* ---------------- the swipeable panel on the home page: invitations first, then Blooms by Bincy ----------------
+     Swipe on a phone, or use the arrows and labelled tabs. It moves on by itself (a line fills in the tab)
+     until someone touches it, and waits while it is off screen or under the mouse. */
+  const BLUSH = '#E9B9C4', SKY = '#DCE6EF', LEAF = '#9BB08C', LEAF_D = '#7E9670', WHITE = '#fff';
+  const petals = (cx, cy, r, fill, off) => [0, 1, 2, 3, 4, 5].map(k => { const a = k * Math.PI / 3 + off;
+    return `<circle cx="${(cx + Math.cos(a) * r * .56).toFixed(1)}" cy="${(cy + Math.sin(a) * r * .56).toFixed(1)}" r="${(r * .44).toFixed(1)}" fill="${fill}"/>`; }).join('');
+  /* one flower (two rings of petals) that blooms in after d seconds; leaves grow out the same way */
+  const bloom = (cx, cy, r, petal, inner, centre, d) => `<g class="fl" style="--d:${d}s">${petals(cx, cy, r, petal, 0)}${petals(cx, cy, r * .62, inner, Math.PI / 6)}<circle cx="${cx}" cy="${cy}" r="${(r * .2).toFixed(1)}" fill="${centre}"/></g>`;
+  const leaves = (cx, cy, rad, angles, d, size) => angles.map((a, i) => { const t = a * Math.PI / 180, x = (cx + Math.cos(t) * rad).toFixed(1), y = (cy + Math.sin(t) * rad).toFixed(1);
+    return `<g class="lf" style="--d:${(d + i * .04).toFixed(2)}s"><ellipse cx="${x}" cy="${y}" rx="${size * .32}" ry="${size}" fill="${i % 2 ? LEAF_D : LEAF}" transform="rotate(${a + 90} ${x} ${y})"/></g>`; }).join('');
+  const bow = (x, y) => `<path d="M${x} ${y}c-30-22-46-6-34 8 8 9 22 2 34-8zm0 0c30-22 46-6 34 8-8 9-22 2-34-8z" fill="${BLUSH}"/><path d="M${x} ${y + 2}l-22 70M${x} ${y + 2}l20 72" stroke="${BLUSH}" stroke-width="6" stroke-linecap="round"/>`;
+  const artSvg = inner => `<svg viewBox="0 0 360 420" aria-hidden="true"><g class="bq-sway">${inner}</g></svg>`;
+  /* the bride's bouquet: a full round of white, blush and sky flowers on a ribbon-wrapped handle */
+  const bridalArt = () => artSvg(
+    leaves(180, 165, 112, [-165, -138, -112, -86, -60, -34, -8, 172, 198, 18], 0, 36) +
+    `<path d="M163 240L170 395Q180 405 190 395L197 240Z" fill="${SKY}" stroke="${DUSTY}" stroke-opacity=".3" stroke-width="2"/><path d="M166 318h28M167 340h26M168 362h24" stroke="${BLUSH}" stroke-width="6" opacity=".7"/>` + bow(180, 292) +
+    bloom(180, 92, 30, MIST, WHITE, DUSTY, .15) + bloom(110, 132, 34, WHITE, MIST, BLUSH, .25) + bloom(250, 132, 34, WHITE, MIST, BLUSH, .3) +
+    bloom(94, 202, 27, SKY, WHITE, DUSTY, .4) + bloom(266, 202, 27, SKY, WHITE, DUSTY, .45) +
+    bloom(138, 236, 30, BLUSH, '#F6DDE3', WHITE, .5) + bloom(222, 236, 30, BLUSH, '#F6DDE3', WHITE, .55) +
+    bloom(180, 170, 50, WHITE, '#F7F3EE', DUSTY, .65) + bloom(136, 106, 20, BLUSH, WHITE, DUSTY, .75) + bloom(224, 106, 20, BLUSH, WHITE, DUSTY, .8) +
+    [[72, 160], [288, 160], [128, 66], [232, 66], [180, 238], [60, 232], [300, 232]].map(([x, y], i) => `<g class="fl" style="--d:${(.9 + i * .06).toFixed(2)}s"><circle cx="${x}" cy="${y}" r="5" fill="${WHITE}"/><circle cx="${x}" cy="${y}" r="1.8" fill="${DUSTY}"/></g>`).join(''));
+  /* the rest of the bridal party: two bridesmaid posies, a flower girl basket and the groom's buttonhole */
+  const posy = (x, y, d) => `<path d="M${x - 7} ${y + 30}L${x - 4} ${y + 118}Q${x} ${y + 124} ${x + 4} ${y + 118}L${x + 7} ${y + 30}Z" fill="${SKY}" stroke="${DUSTY}" stroke-opacity=".3" stroke-width="2"/><path d="M${x - 6} ${y + 70}h12M${x - 5} ${y + 86}h10" stroke="${BLUSH}" stroke-width="5" opacity=".7"/>` +
+    leaves(x, y + 4, 52, [-160, -125, -90, -55, -20, 160, 20], d, 22) +
+    bloom(x - 30, y - 4, 20, WHITE, MIST, BLUSH, d + .1) + bloom(x + 30, y - 4, 20, WHITE, MIST, BLUSH, d + .15) + bloom(x, y - 30, 18, SKY, WHITE, DUSTY, d + .2) +
+    bloom(x - 16, y + 24, 18, BLUSH, '#F6DDE3', WHITE, d + .25) + bloom(x + 16, y + 24, 18, BLUSH, '#F6DDE3', WHITE, d + .3) + bloom(x, y + 2, 28, WHITE, '#F7F3EE', DUSTY, d + .35);
+  const partyArt = () => artSvg(
+    posy(78, 150, .1) + posy(282, 150, .25) +
+    leaves(180, 82, 26, [-150, -30, 200, -20], .5, 16) + `<path d="M180 96l-4 44" stroke="${LEAF_D}" stroke-width="4" stroke-linecap="round"/>` + bloom(180, 80, 20, WHITE, BLUSH, DUSTY, .6) +
+    `<path d="M128 300a52 62 0 0 1 104 0" fill="none" stroke="${DUSTY}" stroke-width="7" stroke-linecap="round"/>` +
+    leaves(180, 300, 54, [-175, -150, -30, -5, 190], .7, 20) +
+    bloom(144, 294, 22, BLUSH, '#F6DDE3', WHITE, .8) + bloom(216, 294, 22, BLUSH, '#F6DDE3', WHITE, .85) + bloom(180, 284, 26, WHITE, MIST, DUSTY, .9) +
+    `<path d="M114 302h132l-15 74a8 8 0 0 1-8 6h-86a8 8 0 0 1-8-6Z" fill="${SKY}"/><path d="M120 322h120M124 342h112M128 362h104" stroke="${DUSTY}" stroke-width="2.5" opacity=".45"/>`);
+  const bqArt = (art, chipIcon, chipHtml) => el('div', { class: 'lp-art' }, el('div', { class: 'lp-blob' }), ['a', 'b', 'c', 'd', 'e', 'f'].map(k => el('i', { class: 'lp-spark ' + k }, '✦')),
+    [8, 24, 46, 62, 78, 90].map((x, i) => el('i', { class: 'bq-petal', style: `left:${x}%;--d:${-i * 1.6}s;--x:${i % 2 ? -50 : 60}px` + (i % 3 ? '' : ';background:#fff') })),
+    el('div', { class: 'bq-art', html: art }),
+    el('div', { class: 'lp-chip', html: `<span>${chipIcon}</span>${chipHtml}` }));
+  const bqCopy = (eyebrow, title, text, points, second) => el('div', { class: 'lp-copy' },
+    el('p', { class: 'tb-eyebrow' }, eyebrow),
+    el('h2', { class: 'lp-ttl', html: title }),
+    el('p', {}, text),
+    el('ul', { class: 'bq-points' }, points.map(t => el('li', {}, t))),
+    el('div', { class: 'lp-cta' }, el('a', { class: 'lp-btn', href: BLOOMS_URL }, 'See the bouquets'), second));
+  const bloomsSlides = () => [
+    { cls: 'bq', label: 'Bouquets', node: el('div', { class: 'lp-in' },
+      bqCopy('Blooms by Bincy · Handmade bouquets', 'Every love story deserves to <b>bloom</b>.',
+        'Bridal, cascade and round bouquets, handmade in Adimali, Idukki for Kerala Christian weddings.',
+        ['Made to order for your date', 'Matched to your dress and colours', 'Delivery across Idukki'],
+        el('a', { class: 'lp-link', href: waHref('Hello Blooms by Bincy! I would like to order a wedding bouquet. Our wedding date is: '), target: '_blank', rel: 'noopener' }, 'Order on WhatsApp')),
+      bqArt(bridalArt(), BOUQUET_STYLES[0][2], 'Matched to your<br>dress colours')) },
+    { cls: 'bq party', label: 'Bridal party', node: el('div', { class: 'lp-in' },
+      bqCopy('Blooms by Bincy · For the whole party', 'Flowers for your <b>bridesmaids</b>, flower girls and groom.',
+        'Bridesmaid bouquets to match the bride’s, little flower girl baskets and a buttonhole for the groom. Baptism sets too.',
+        ['Bridesmaid bouquets', 'Flower girl baskets', 'Bride and groom sets'],
+        el('a', { class: 'lp-link', href: BLOOMS_URL + 'how-to-order.html' }, 'How to order')),
+      bqArt(partyArt(), BOUQUET_STYLES[4][2], 'Bridesmaids, flower<br>girl and groom')) }
+  ];
+  const SHOW_MS = [11000, 7000, 7000]; // how long each slide stays: the invitation phone is playing, so it gets longer
+  function heroShow(slides) {
+    let cur = 0, t = 0, auto = !u.RM, hover = false, seen = true;
+    const track = el('div', { class: 'lp-track' }, slides.map((x, i) => el('div', { class: 'lp-slide ' + x.cls + (i ? '' : ' on'), role: 'group', 'aria-roledescription': 'slide', 'aria-label': (i + 1) + ' of ' + slides.length + ': ' + x.label }, x.node)));
+    const go = i => track.scrollTo({ left: i * track.clientWidth, behavior: u.RM ? 'auto' : 'smooth' });
+    const stop = () => { auto = false; sec.classList.add('still'); };
+    const dots = slides.map((x, i) => el('button', { class: 'lp-dot' + (i ? '' : ' on'), type: 'button', 'aria-label': 'Show ' + x.label, onclick: () => { stop(); go(i); } }, el('span', {}, x.label), el('i')));
+    const arrow = (d, label, txt) => el('button', { class: 'lp-arr ' + (d < 0 ? 'prev' : 'next'), type: 'button', 'aria-label': label, onclick: () => { stop(); go((cur + d + slides.length) % slides.length); } }, txt);
+    const sec = el('section', { class: 'lp-hero lp-show', 'aria-roledescription': 'carousel', 'aria-label': 'Invitations and bouquets' },
+      el('div', { class: 'lp-dots' }, dots), track, arrow(-1, 'Previous slide', '‹'), arrow(1, 'Next slide', '›'));
+    const set = i => { if (i === cur || !track.children[i]) return; cur = i; t = 0;
+      [...track.children].forEach((x, k) => x.classList.toggle('on', k === i)); dots.forEach((x, k) => { x.classList.toggle('on', k === i); x.style.setProperty('--p', 0); }); };
+    track.addEventListener('scroll', () => set(Math.round(track.scrollLeft / track.clientWidth)), { passive: true });
+    ['pointerdown', 'keydown'].forEach(ev => track.addEventListener(ev, stop, { passive: true }));
+    track.addEventListener('wheel', e => { if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) stop(); }, { passive: true });
+    sec.addEventListener('mouseenter', () => { hover = true; }); sec.addEventListener('mouseleave', () => { hover = false; });
+    if ('IntersectionObserver' in window) new IntersectionObserver(es => { seen = es[0].isIntersecting; }).observe(sec);
+    if (auto) lpTimers.push(setInterval(() => {
+      if (!auto || hover || !seen || document.hidden) return;
+      const ms = SHOW_MS[cur] || 7000; t += 100; dots[cur].style.setProperty('--p', Math.min(1, t / ms).toFixed(3));
+      if (t >= ms) go((cur + 1) % slides.length);
+    }, 100));
+    return sec;
+  }
+
   /* ---------------- design cards, shared by the home page and the letters page ---------------- */
   const WEDDING = 'Wedding invitations';
   const designCard = id => { const T = KS.templates[id];
@@ -341,7 +423,7 @@
       const step = t => {
         raf = requestAnimationFrame(step);
         const dt = last ? Math.min(t - last, 60) : 0; last = t;
-        const w = pv.contentWindow; if (!w || !heroOn || document.hidden) return;
+        const w = pv.contentWindow; if (!w || !heroOn || document.hidden || !pv.closest('.lp-slide.on')) return; // only while its slide is showing
         const max = w.document.documentElement.scrollHeight - w.innerHeight;
         if (phase === 'top' || phase === 'bottom') { hold -= dt; if (hold > 0) return;
           if (phase === 'bottom') { y = 0; w.scrollTo({ top: 0, behavior: 'smooth' }); phase = 'top'; hold = 3200; return; }
@@ -358,7 +440,7 @@
       tbHeader(),
       tbHero('wedding-christian'),
 
-      el('section', { class: 'lp-hero' }, el('div', { class: 'lp-in' },
+      heroShow([{ cls: 'inv', label: 'Invitations', node: el('div', { class: 'lp-in' },
         el('div', { class: 'lp-copy' },
           el('p', { class: 'tb-eyebrow' }, 'Tales & Tidings · Digital invitations'),
           el('h2', { class: 'lp-rot', 'aria-live': 'polite' }, el('span', { html: HEADLINES[0] })),
@@ -368,7 +450,7 @@
           B.configured() ? null : el('div', { class: 'notice', html: '<b>Publishing is not switched on yet.</b> You can design and preview everything now. To share pages, connect a free Supabase project: open <code>SETUP.md</code> in this folder and follow the steps.' })),
         el('div', { class: 'lp-art' }, el('div', { class: 'lp-blob' }), ['a', 'b', 'c', 'd', 'e', 'f'].map(k => el('i', { class: 'lp-spark ' + k }, '✦')),
           el('div', { class: 'lp-phone' }, el('i', { class: 'notch' }), el('div', { class: 'scr' }, pv)),
-          el('div', { class: 'lp-chip', html: `<span>${LP_ICON.pin}</span>Find your venue<br>with maps` })))),
+          el('div', { class: 'lp-chip', html: `<span>${LP_ICON.pin}</span>Find your venue<br>with maps` }))) }, ...bloomsSlides()]),
 
       el('section', { class: 'lp-sec lp-featured' }, el('div', { class: 'lp-in' },
         lpH2('Popular', 'Wedding', ' Designs'),

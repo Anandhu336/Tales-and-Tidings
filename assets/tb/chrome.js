@@ -1,6 +1,6 @@
 /* Tales & Blooms: the header and footer shared by the whole site.
    The home page (js/app.js) and every bouquet page (blooms/js/site.js) call these, so the menu and footer are edited here, once.
-     TB.header({ base, active, account, cta })   base: '' on the home page, '../' inside blooms/
+     TB.header({ base, active, account, cta })   cta: {href,label,external} or false. base: '' on the home page, '../' inside blooms/
      TB.footer({ base })
    Pages and parts of the site: "#/invitations", "#/letters", "#/how" (on the invitations page), "#/packages" and "#/faq" (on the home page); js/app.js handles them.
    Shop details (WhatsApp number, Instagram) come from blooms/shop-data.js when the page has loaded it. */
@@ -28,7 +28,7 @@
     const home = base || './';
     const link = (key, href, label) => '<a href="' + esc(href) + '"' + (o.active === key ? ' aria-current="page"' : '') + '>' + esc(label) + '</a>';
     const acct = o.account === false ? '' : '<a class="tb-acct" href="' + esc(base + '#/account') + '">' + esc((o.account && o.account.label) || 'Sign in') + '</a>';
-    const cta = o.cta || { href: base + '#/invitations', label: 'Create an invitation' };
+    const cta = o.cta === false ? null : (o.cta || { href: base + '#/invitations', label: 'Create an invitation' }); // false: no button (the bouquet pages have their own)
     const h = document.createElement('header');
     h.className = 'tb-header';
     h.innerHTML =
@@ -39,7 +39,7 @@
           link('bouquets', base + 'blooms/', 'Bouquets') +
           link('packages', base + '#/packages', 'Wedding packages') +
           acct +
-          '<a class="tb-btn" href="' + esc(cta.href) + '"' + (cta.external ? ' target="_blank" rel="noopener"' : '') + '>' + esc(cta.label) + '</a>' +
+          (cta ? '<a class="tb-btn" href="' + esc(cta.href) + '"' + (cta.external ? ' target="_blank" rel="noopener"' : '') + '>' + esc(cta.label) + '</a>' : '') +
         '</nav>' +
       '</div>';
     const btn = h.querySelector('.tb-menu-btn'), nav = h.querySelector('.tb-nav');

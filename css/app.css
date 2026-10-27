@@ -586,3 +586,96 @@ body.is-lp{background:#faf5ec}
 .lp a.lp-back{display:inline-block;margin-bottom:18px;color:var(--pk);font:600 14px 'Inter',sans-serif}
 .lp-page h1.lp-h2{margin:0 0 14px;font-size:clamp(34px,5.5vw,54px);line-height:1.1}
 .lp-page-lead{max-width:40em;margin:0 0 10px;color:var(--tm);font-size:16px;line-height:1.7}
+
+/* ---------- phones and tablets: iPhone/iPad Safari, Android Chrome, and the browsers inside WhatsApp and Instagram ---------- */
+/* landscape iPhones: keep text clear of the notch (the page uses viewport-fit=cover) */
+.lp-in{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+.ov{-webkit-backdrop-filter:blur(3px)}
+.lp-nav{-webkit-backdrop-filter:blur(8px)}
+/* iOS: an empty date or time box collapses, and its value sits centred */
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;min-height:46px;display:block}
+input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{text-align:left}
+@media (pointer:coarse),(max-width:700px){
+  /* an iPhone zooms the page in when a text box under 16px is tapped, and stays zoomed */
+  input[type=text],input[type=email],input[type=password],input[type=date],input[type=time],input[type=url],input[type=tel],input[type=number],input[type=search],input:not([type]),textarea,select,.linkbox input{font-size:16px}
+  /* finger-sized taps (about 44px) */
+  .tabs button{padding:10px 18px}
+  .mini{width:38px;height:38px;font-size:14px}
+  .link{padding:10px 4px}
+  .acct-home,.lp a.lp-back,.lpb-link,.lp a.tb-pack-more,.tb-pack-link{display:inline-flex;align-items:center;min-height:44px}
+  .lp a.lp-back{margin-bottom:6px}
+  .tb-pack-link{margin-top:14px}
+}
+/* touch screens: a tap leaves :hover "stuck", so cards don't stay lifted after you tap them */
+@media (hover:none){
+  .tcard:hover,.lp-btn:hover,.lp-occ a:hover,.lpb-styles a:hover,.tb-choice:hover,.lp a.lp-more:hover{transform:none}
+  .lp-steps .lp-in>div:hover .ic{transform:none}
+}
+
+/* ---------- the swipeable panel on the home page (heroShow in js/app.js): invitations, then Blooms by Bincy ---------- */
+.lp-show{position:relative}
+.lp-track{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.lp-track::-webkit-scrollbar{display:none}
+.lp-slide{flex:0 0 100%;min-width:0;display:flex;flex-direction:column;scroll-snap-align:start;scroll-snap-stop:always}
+.lp-slide>.lp-in{flex:1 0 auto;transition:opacity .6s ease,transform .6s ease}
+.lp-slide:not(.on)>.lp-in{opacity:.35;transform:scale(.97)}
+.lp-show .lp-in{padding-top:96px}
+/* the labelled tabs along the top, with a line that fills while the slide waits */
+.lp-dots{position:absolute;top:26px;left:0;right:0;z-index:5;display:flex;justify-content:center;gap:8px;padding:0 12px;pointer-events:none}
+.lp-dot{pointer-events:auto;position:relative;overflow:hidden;appearance:none;display:inline-flex;align-items:center;min-height:42px;padding:0 18px;border:1px solid rgba(34,48,63,.14);border-radius:999px;background:rgba(255,255,255,.86);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#3A4A5C;font:600 13.5px 'Inter',sans-serif;cursor:pointer;transition:background .3s,color .3s,border-color .3s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.lp-dot.on{background:#22303F;border-color:#22303F;color:#fff}
+.lp-dot i{position:absolute;left:0;bottom:0;width:100%;height:3px;background:#E9B9C4;transform-origin:left;transform:scaleX(var(--p,0))}
+.lp-dot:not(.on) i,.still .lp-dot i{opacity:0}
+.lp-arr{position:absolute;top:54%;z-index:5;display:grid;place-items:center;width:50px;height:50px;padding:0 0 4px;border:1px solid rgba(34,48,63,.12);border-radius:50%;background:rgba(255,255,255,.92);box-shadow:0 8px 22px rgba(34,48,63,.1);color:#22303F;font:400 30px/1 Georgia,serif;cursor:pointer;transition:transform .2s,box-shadow .2s}
+.lp-arr:hover{transform:scale(1.06);box-shadow:0 12px 26px rgba(34,48,63,.16)}
+.lp-arr.prev{left:max(16px,env(safe-area-inset-left))}.lp-arr.next{right:max(16px,env(safe-area-inset-right))}
+.lp-dot:focus-visible,.lp-arr:focus-visible{outline:2px solid #5B7895;outline-offset:3px}
+
+/* the bouquet slides: Blooms by Bincy colours */
+.lp-slide.bq{background:radial-gradient(60% 80% at 80% 40%,#DCE6EF 0%,transparent 65%),radial-gradient(50% 70% at 0% 0%,#F7E4EA 0%,transparent 60%),#F4F6F9}
+.lp-hero .lp-ttl{margin:0 0 22px;font:300 clamp(38px,5.4vw,62px)/1.14 'Fraunces',Georgia,serif;letter-spacing:-.02em;color:#22303F}
+.lp-hero .lp-ttl b{display:inline-block;padding-right:.08em;font-style:italic;font-weight:600;background:linear-gradient(90deg,#5B7895 0%,#5B7895 40%,#C98A9B 50%,#5B7895 60%,#5B7895 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:lpShine 6s ease-in-out 1.2s infinite}
+.lp-slide.bq .lp-copy p.tb-eyebrow{color:#4C6680}
+.lp-slide.bq .lp-copy>p:not(.tb-eyebrow){margin-bottom:22px}
+.lp .lp-slide.bq .lp-btn{background:#5B7895;box-shadow:0 10px 24px rgba(91,120,149,.28)}
+.lp .lp-slide.bq .lp-btn:hover{background:#4C6680}
+.lp .lp-slide.bq .lp-link:hover{color:#5B7895}
+.lp-slide.bq .lp-blob,.lp-slide.bq .lp-blob::before{border-color:#5B7895}
+.lp-slide.bq .lp-blob::after{background:radial-gradient(circle,#fff 0%,transparent 70%)}
+.lp-slide.bq .lp-spark{color:#5B7895}
+.lp-slide.bq .lp-chip span{background:linear-gradient(135deg,#5B7895,#9BB08C)}
+.lp-slide.bq .lp-chip svg{width:34px;height:34px}
+.lp-slide.bq .lp-chip{top:auto;bottom:70px;left:auto;right:-6px}
+.bq-points{list-style:none;display:grid;gap:10px;margin:0 0 30px;padding:0;font:500 15px/1.4 'Inter',sans-serif;color:#3A4A5C}
+.bq-points li{display:flex;align-items:center;gap:12px}
+.bq-points li::before{content:'';flex:none;width:9px;height:9px;border-radius:50%;background:#E9B9C4;box-shadow:0 0 0 4px #F7E4EA}
+.bq-art{position:relative;z-index:1;width:min(400px,100%);margin:auto 0 34px}
+.bq-art svg{display:block;width:100%;height:auto;overflow:visible}
+/* flowers bloom in one by one when their slide arrives, then the whole bouquet sways */
+.bq-art .fl,.bq-art .lf{transform-box:fill-box;transform-origin:center}
+.lp-slide.on .bq-art .fl{animation:bqBloom .9s cubic-bezier(.2,.8,.25,1.2) var(--d) both}
+.lp-slide.on .bq-art .lf{animation:bqLeaf .8s ease-out var(--d) both}
+.lp-slide:not(.on) .bq-art .fl,.lp-slide:not(.on) .bq-art .lf{opacity:0}
+.bq-sway{transform-box:view-box;transform-origin:180px 400px;animation:bqSway 7s ease-in-out infinite}
+.bq-petal{position:absolute;top:-4%;z-index:2;width:11px;height:15px;border-radius:12px 0 12px 0;background:#E9B9C4;opacity:0;pointer-events:none}
+.lp-slide.on .bq-petal{animation:bqFall 10s linear var(--d) infinite}
+@keyframes bqBloom{from{opacity:0;transform:scale(.15) rotate(-50deg)}to{opacity:1;transform:none}}
+@keyframes bqLeaf{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
+@keyframes bqSway{0%,100%{transform:rotate(-1.8deg)}50%{transform:rotate(1.8deg)}}
+@keyframes bqFall{0%{opacity:0;transform:translate(0,0) rotate(0)}10%{opacity:.85}85%{opacity:.6}100%{opacity:0;transform:translate(var(--x),520px) rotate(340deg)}}
+@media(max-width:900px){
+  .lp-arr{display:none}
+  .lp-show .lp-in{padding-top:88px}
+  .bq-art{width:min(330px,88%);margin:auto auto 26px}
+  .lp-slide.bq .lp-chip{bottom:40px;right:0}
+}
+@media(max-width:400px){.lp-dots{gap:6px}.lp-dot{padding:0 12px;font-size:12.5px}}
+@media(hover:none){.lp-arr:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){
+  .lp-slide>.lp-in,.lp-dot{transition:none}
+  .bq-sway,.lp-slide.on .bq-petal,.lp-hero .lp-ttl b{animation:none}
+  .lp-slide.on .bq-art .fl,.lp-slide.on .bq-art .lf{animation:none}
+  .lp-slide:not(.on) .bq-art .fl,.lp-slide:not(.on) .bq-art .lf{opacity:1}
+}
+.lp-slide.party .lp-chip{top:70px;bottom:auto;right:auto;left:-6px}
+@media(max-width:900px){.lp-slide.party .lp-chip{top:40px;left:0}}
