@@ -66,6 +66,30 @@ This is where the "confirm your email" and "reset your password" links send peop
 
 Pages made **without** an account still work as before (editable only from the browser that made them). When that person later signs in on the same browser, those pages move into their account automatically.
 
+## 7. The admin page (manage both sides of the site)
+
+The admin page is at **/admin/** on your site, for example `https://yourname.github.io/tales-and-tidings/admin/`. It uses the same sign-in as the rest of the site. From there you can:
+
+- **Bouquets (Blooms by Bincy):** change bouquets and prices, add or replace bouquet photos, hide a bouquet, block wedding dates, change the banner photos, the WhatsApp number and other shop details, and the colour stories. Changes show on the shop when you press **Save changes**.
+- **Invitations (Tales & Tidings):** see every published invitation page, search by name, email or page id, open one, copy its link, or delete it (with its photos and songs).
+- **Overview:** how many pages, drafts and accounts there are.
+
+Set it up once:
+
+1. Create an account on the site (the **Sign in** link at the top), if you have not already.
+2. In Supabase, click **SQL Editor**, then **New query**. Open `supabase/admin.sql`, copy **everything**, paste it in and click **Run**.
+3. Make your account an admin: in a new query, run this line with your own email:
+
+   ```sql
+   insert into public.admins (user_id) select id from auth.users where email = 'you@example.com';
+   ```
+
+4. Open `/admin/` and sign in. (If you open it before step 3, the page shows this line with your email filled in, ready to copy.)
+
+To add another admin later, run step 3 again with their email. To remove one: `delete from public.admins where user_id = (select id from auth.users where email = 'them@example.com');`
+
+Until something is saved on the admin page, the shop uses the built-in list in `blooms/shop-data.js`. After the first save, the admin page is where bouquets are changed (editing the file then only matters if you press **Go back to the built-in list** on the admin page). Bouquet photos uploaded on the admin page are made smaller first and stored in Supabase Storage, in `media/blooms/`.
+
 ## Good to know
 
 - **Free projects pause after a week with no activity.** Pages stop opening until you click **Restore** in Supabase. Visiting the dashboard now and then, or upgrading, avoids this.

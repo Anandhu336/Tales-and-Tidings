@@ -4,7 +4,7 @@
    - the Blooms by Bincy footer, the floating WhatsApp button, and WhatsApp/Instagram links,
    - orderLink(): where "View & personalise" goes (one place to change when the order pages arrive).
    Each page has <header id="bb-header"></header> and <footer id="bb-footer"></footer>; this file swaps them for the real ones.
-   Shop details come from blooms/shop-data.js. */
+   Shop details come from blooms/shop-data.js, or from the admin page once saved there (js/content.js). */
 (function () {
   'use strict';
   const S = window.BLOOMS || {};
@@ -50,7 +50,7 @@
   }
 
   function footer() {
-    const ph = document.getElementById('bb-footer'); if (!ph) return;
+    const ph = document.getElementById('bb-footer') || document.querySelector('footer.bb-footer'); if (!ph) return;
     const a = (href, label, ext) => '<a href="' + esc(href) + '"' + (ext ? ' target="_blank" rel="noopener"' : '') + '>' + esc(label) + '</a>';
     const shop = (cat, label) => a(home + '?cat=' + cat + '#shop', label);
     const f = document.createElement('footer');
@@ -68,7 +68,7 @@
 
   /* floating WhatsApp button, bottom right, on every bouquet page */
   function floatingWa() {
-    if (document.querySelector('.bb-wa')) return;
+    const old = document.querySelector('.bb-wa'); if (old) { old.href = waLink(document.body.dataset.wa || ''); return; }
     const a = document.createElement('a');
     a.className = 'bb-wa'; a.target = '_blank'; a.rel = 'noopener';
     a.href = waLink(document.body.dataset.wa || '');
@@ -92,4 +92,6 @@
   }
 
   header(); footer(); floatingWa(); wireWaLinks(); reveal();
+  // the admin's saved shop details (WhatsApp number, place...) can arrive a moment later: refresh what uses them
+  if (window.BloomsContent) window.BloomsContent.then(() => { footer(); floatingWa(); wireWaLinks(); });
 })();

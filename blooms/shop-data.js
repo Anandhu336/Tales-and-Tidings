@@ -1,6 +1,8 @@
-/* Blooms by Bincy: THE file to edit for the shop.
+/* Blooms by Bincy: the built-in shop data.
    Shop details, the bouquets and their prices, the categories, the colour stories and the wedding-date rules all live here.
-   After editing, save and refresh the page. Keep the quotes, commas and brackets as they are. */
+   Easiest way to change them: the admin page (admin/ on the site). Once something is saved there, the shop shows the
+   admin's version and this file is only the starting point (and the fallback if the database cannot be reached).
+   Editing this file by hand still works while nothing has been saved on the admin page. Keep the quotes, commas and brackets as they are. */
 window.BLOOMS = {
   // WhatsApp number: country code + number, digits only. Example: '919876543210'
   // Leave it empty ('') until it is ready: the WhatsApp buttons still work, the customer just picks who to send to.
@@ -72,7 +74,8 @@ window.BLOOMS = {
      image:     optional photo in assets/blooms/photos/ (leave out to show the drawing and "Photo coming soon")
      illus:     the drawing in assets/blooms/illus/ used when there is no photo
      tag:       optional little label on the photo, e.g. 'Signature'
-     featured:  true for the one shown on the big photo at the top */
+     featured:  true to show it first under "Sort: Featured"
+     hidden:    true to keep it out of the shop for now */
   products: [
     { no: 1, id: 'lavender-cascade', name: 'The Lavender Cascade', category: 'cascade', label: 'Cascade', price: 3500,
       colours: ['#5E3A5B', '#A894D0', '#F4EEE2', '#E9B9C4', '#9BB08C'], stories: ['lavender-plum'],
